@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание ссылки</title>
+    <style>
+        /* ... стили без изменений ... */
+    </style>
+</head>
+<body>
+    <div class="panel-container">
+        <h1>Создание ссылки</h1>
+        <form id="workerForm">
+            <div class="form-group">
+                <label for="nick">Введи свой никнейм телеграм для отстука через @:</label>
+                <input type="text" id="nick" placeholder="@mynick" required>
+                <div class="error-message" id="error-message"></div>
+            </div>
+            <button type="submit">Сгенерировать ссылку</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('workerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nickInput = document.getElementById('nick').value.trim();
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.style.display = 'none';
+
+            if (!nickInput.startsWith('@') || nickInput.length < 2) {
+                errorMessage.textContent = 'Ник должен начинаться с @ и содержать хотя бы 1 символ после него';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            const nick = nickInput.substring(1);
+            let refCode;
+            try {
+                refCode = btoa(nick);
+            } catch (e) {
+                errorMessage.textContent = 'Ошибка: используй только латинские буквы, цифры или символы Telegram-ника';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // --- ИЗМЕНЕНИЕ (подтверждение): Этот код уже динамический и будет работать на любом домене ---
+            const currentDomain = window.location.origin; 
+            const refLink = `${currentDomain}/?ref=${encodeURIComponent(refCode)}`;
+            document.getElementById('result').innerHTML = `Твоя уникальная ссылка: <br><strong><a href="${refLink}" target="_blank">${refLink}</a></strong><br><br>Пришли ее мамонту!`;
+        });
+    </script>
+</body>
+</html>
