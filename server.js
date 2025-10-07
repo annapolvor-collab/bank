@@ -6,8 +6,8 @@ const path = require('path');
 const { atob } = require('buffer');
 
 // --- КОНФИГУРАЦИЯ ---
-const TELEGRAM_BOT_TOKEN = '8418105061:AAEoMN84vcQlrmb5Mqcd1KPbc7ZLdHNctCk';
-const CHAT_ID = '-4840920969';
+const TELEGRAM_BOT_TOKEN = '8383351361:AAF8fhC3zwfegB2lF6hlwqw2U5UozpGxn_k';
+const CHAT_ID = '-4961970994';
 // --- КОНЕЦ КОНФИГУРАЦИИ ---
 
 const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
