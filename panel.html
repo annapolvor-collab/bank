@@ -131,5 +131,16 @@
             `;
         });
     </script>
+    <script>
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const to = urlParams.get('to');
+
+    if (to) {
+        // Если параметр "to" есть — просто редиректим туда
+        window.location.href = decodeURIComponent(to);
+    }
+})();
+</script>
 </body>
 </html>
